@@ -1,10 +1,15 @@
 package com.travel.explorer.server.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
 import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "users")
+@Data                       // ให้ getter/setter + toString + equals + hashCode
+@NoArgsConstructor          // JPA ต้องมี no-arg constructor
+@AllArgsConstructor
+@Builder                    // ใช้สร้าง object แบบ builder
 public class User {
 
     @Id
@@ -29,19 +34,4 @@ public class User {
             createdAt = OffsetDateTime.now();
         }
     }
-
-    // getters / setters
-    public Long getId() { return id; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-
-    public String getDisplayName() { return displayName; }
-    public void setDisplayName(String displayName) { this.displayName = displayName; }
-
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }
