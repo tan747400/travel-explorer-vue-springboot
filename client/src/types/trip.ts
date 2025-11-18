@@ -8,4 +8,5 @@ export interface Trip {
     longitude?: number | null;
     province?: string | null;
     url?: string | null; // ถ้าฝั่ง backend มีฟิลด์นี้ค่อยเติมจริงทีหลัง
+    authorName?: string | null;
   }

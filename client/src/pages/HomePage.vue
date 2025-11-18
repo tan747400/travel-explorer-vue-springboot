@@ -1,38 +1,42 @@
 <template>
-  <div class="px-3 md:px-10 py-10">
-    <h1
-      class="text-5xl md:text-6xl text-center text-blue-400 font-bold mb-10"
-    >
-      เที่ยวไหนดี
-    </h1>
+  <div class="min-h-screen bg-slate-50">
+  
+    <!-- ===== เนื้อหาหลักแบบเดิม “เที่ยวไหนดี + Search” ===== -->
+    <main class="px-3 md:px-10 py-10 max-w-6xl mx-auto">
+      <h1
+        class="text-5xl md:text-6xl text-center text-blue-400 font-bold mb-10"
+      >
+        เที่ยวไหนดี
+      </h1>
 
-    <!-- Search -->
-    <div class="mb-10 w-full">
-      <SearchBar
-        v-model="keyword"
-        label="ค้นหาที่เที่ยว"
-        placeholder="หาที่เที่ยวแล้วไปกัน ..."
-      />
-    </div>
+      <!-- Search -->
+      <div class="mb-10 w-full">
+        <SearchBar
+          v-model="keyword"
+          label="ค้นหาที่เที่ยว"
+          placeholder="หาที่เที่ยวแล้วไปกัน ..."
+        />
+      </div>
 
-    <!-- States -->
-    <Loading v-if="status === 'loading'" />
-    <ErrorState v-else-if="status === 'error'" />
-    <EmptyState v-else-if="status === 'success' && trips.length === 0" />
+      <!-- States -->
+      <Loading v-if="status === 'loading'" />
+      <ErrorState v-else-if="status === 'error'" />
+      <EmptyState v-else-if="status === 'success' && trips.length === 0" />
 
-    <!-- Trip list -->
-    <div
-      v-else-if="status === 'success' && trips.length > 0"
-      class="flex flex-col gap-6 max-w-6xl mx-auto"
-    >
-      <TripCard
-        v-for="item in trips"
-        :key="item.id"
-        :item="item"
-        :keyword="keyword"
-        @addKeyword="handleAddKeyword"
-      />
-    </div>
+      <!-- Trip list -->
+      <div
+        v-else-if="status === 'success' && trips.length > 0"
+        class="flex flex-col gap-6 max-w-6xl mx-auto"
+      >
+        <TripCard
+          v-for="item in trips"
+          :key="item.id"
+          :item="item"
+          :keyword="keyword"
+          @addKeyword="handleAddKeyword"
+        />
+      </div>
+    </main>
   </div>
 </template>
 
@@ -65,7 +69,7 @@ async function fetchTrips() {
   }
 }
 
-// ใช้ debounce แบบเดียวกับ useDebouncedEffect ใน React โปรเจกต์เก่า
+// debounce เวลาเปลี่ยน keyword
 useDebouncedEffect(fetchTrips, [keyword], 300);
 
 function handleAddKeyword(tag: string) {

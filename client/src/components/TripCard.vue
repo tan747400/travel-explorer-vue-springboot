@@ -1,53 +1,63 @@
 <template>
   <div
-    class="relative flex flex-col md:flex-row items-start gap-4 p-4 shadow-sm hover:shadow-md transition"
+    class="relative flex flex-col md:flex-row items-start gap-4 p-4 shadow-sm hover:shadow-md transition bg-white rounded-3xl"
   >
     <!-- รูปหลัก -->
     <img
-      v-if="item.photos?.[0]"
+      v-if="props.item.photos?.[0]"
       class="rounded-3xl w-full md:w-[350px] h-[250px] object-cover order-1"
-      :src="item.photos[0]"
-      :alt="item.title"
+      :src="props.item.photos[0]"
+      :alt="props.item.title"
     />
 
     <!-- เนื้อหา -->
     <div class="flex flex-col flex-1 order-2">
-      <h2 class="mb-2">
+      <!-- ชื่อทริป -->
+      <h2 class="mb-1">
         <RouterLink
-          :to="{ name: 'trip-detail', params: { id: item.id } }"
+          :to="{ name: 'trip-detail', params: { id: props.item.id } }"
           class="text-xl font-bold hover:underline"
         >
-          {{ item.title }}
+          {{ props.item.title }}
         </RouterLink>
       </h2>
 
-      <p class="text-gray-700 mb-2">
-        {{
-          item.description.length > 100
-            ? item.description.slice(0, 100) + "..."
-            : item.description
-        }}
+      <!-- จังหวัด -->
+      <p
+        v-if="props.item.province"
+        class="text-sm text-sky-600 font-medium mb-1"
+      >
+        {{ props.item.province }}
       </p>
 
+      <!-- คำบรรยายสั้น -->
+      <p class="text-gray-700 mb-2">
+        {{ shortDesc }}
+      </p>
+
+      <!-- ลิงก์ไปหน้า Detail -->
       <RouterLink
-        :to="{ name: 'trip-detail', params: { id: item.id } }"
+        :to="{ name: 'trip-detail', params: { id: props.item.id } }"
         class="text-blue-500 underline mb-2 text-sm"
       >
         View Detail
       </RouterLink>
 
+      <!-- แท็ก -->
       <TagList
-        :tags="item.tags || []"
-        :currentKeyword="keyword"
+        :tags="props.item.tags || []"
+        :currentKeyword="props.keyword"
         @clickTag="handleClickTag"
       />
 
+      <!-- รูปย่อย -->
       <PhotoGrid
-        :photos="(item.photos || []).slice(1, 4)"
-        :title="item.title"
+        :photos="(props.item.photos || []).slice(1, 4)"
+        :title="props.item.title"
       />
     </div>
 
+    <!-- ปุ่ม Copy -->
     <CopyButton :url="detailUrl" />
   </div>
 </template>
@@ -58,8 +68,9 @@ import { RouterLink } from "vue-router";
 import TagList from "./TagList.vue";
 import PhotoGrid from "./PhotoGrid.vue";
 import CopyButton from "./CopyButton.vue";
-import type { Trip } from "../types/trip";
+import type { Trip } from "@/types/trip";
 
+// ให้ TypeScript เห็นว่าเราใช้ props จริง ๆ
 const props = defineProps<{
   item: Trip & { url?: string };
   keyword: string;
@@ -68,6 +79,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "addKeyword", tag: string): void;
 }>();
+
+// description สั้นไม่เกิน 120 ตัว
+const shortDesc = computed(() => {
+  const text = (props.item.description ?? "").trim();
+  return text.length > 120 ? text.slice(0, 120) + "…" : text;
+});
 
 const detailUrl = computed(() =>
   props.item.url ? props.item.url : `/trips/${props.item.id}`
