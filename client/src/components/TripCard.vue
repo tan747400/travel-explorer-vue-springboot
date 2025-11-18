@@ -13,14 +13,12 @@
     <!-- เนื้อหา -->
     <div class="flex flex-col flex-1 order-2">
       <h2 class="mb-2">
-        <a
-          :href="detailUrl"
-          target="_blank"
-          rel="noopener noreferrer"
+        <RouterLink
+          :to="{ name: 'trip-detail', params: { id: item.id } }"
           class="text-xl font-bold hover:underline"
         >
           {{ item.title }}
-        </a>
+        </RouterLink>
       </h2>
 
       <p class="text-gray-700 mb-2">
@@ -31,14 +29,12 @@
         }}
       </p>
 
-      <a
-        :href="detailUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-blue-500 underline mb-2"
+      <RouterLink
+        :to="{ name: 'trip-detail', params: { id: item.id } }"
+        class="text-blue-500 underline mb-2 text-sm"
       >
-        อ่านต่อ
-      </a>
+        View Detail
+      </RouterLink>
 
       <TagList
         :tags="item.tags || []"
@@ -58,13 +54,14 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 import TagList from "./TagList.vue";
 import PhotoGrid from "./PhotoGrid.vue";
 import CopyButton from "./CopyButton.vue";
 import type { Trip } from "../types/trip";
 
 const props = defineProps<{
-  item: Trip & { url?: string }; // เผื่อมี url จาก backend
+  item: Trip & { url?: string };
   keyword: string;
 }>();
 
@@ -72,7 +69,6 @@ const emit = defineEmits<{
   (e: "addKeyword", tag: string): void;
 }>();
 
-// ถ้ามี item.url ก็ใช้เลย ไม่งั้น fallback ไป internal route
 const detailUrl = computed(() =>
   props.item.url ? props.item.url : `/trips/${props.item.id}`
 );
