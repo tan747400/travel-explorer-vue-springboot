@@ -6,5 +6,6 @@ export interface Trip {
     tags: string[];
     latitude?: number | null;
     longitude?: number | null;
-    province?: string | null; // ถ้าฝั่ง backend มีฟิลด์นี้ค่อยเติมจริงทีหลัง
+    province?: string | null;
+    url?: string | null; // ถ้าฝั่ง backend มีฟิลด์นี้ค่อยเติมจริงทีหลัง
   }
