@@ -9,6 +9,11 @@ import java.util.List;
 
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
+    /**
+     * ค้นหา trip จาก keyword แบบง่าย ๆ
+     * - ค้นหา title / description / province (case-insensitive)
+     * - ถ้า keyword ว่างหรือ null → คืนทั้งหมด (ORDER BY id DESC)
+     */
     @Query("""
         SELECT t
         FROM Trip t
@@ -16,7 +21,8 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             (:keyword IS NULL OR :keyword = '')
             OR LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
             OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        ORDER BY t.createdAt DESC
+            OR LOWER(t.province) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY t.id DESC
     """)
     List<Trip> search(@Param("keyword") String keyword);
 }
