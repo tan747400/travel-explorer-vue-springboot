@@ -8,7 +8,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/trips")
-@CrossOrigin(origins = "http://localhost:5174")
+@CrossOrigin(origins = "http://localhost:5173")
 public class TripController {
 
     private final TripService tripService;
@@ -19,9 +19,9 @@ public class TripController {
 
     @GetMapping
     public List<TripResponse> getTrips(
-            @RequestParam(name = "keywords", required = false) String keywords
+            @RequestParam(name = "keyword", required = false) String keyword   // ชื่อ param ต้องตรงกับฝั่ง client
     ) {
-        return tripService.getTrips(keywords);
+        return tripService.getTrips(keyword);
     }
 
     @GetMapping("/{id}")
