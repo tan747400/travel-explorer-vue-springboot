@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-  
-    <!-- ===== เนื้อหาหลักแบบเดิม “เที่ยวไหนดี + Search” ===== -->
+    <!-- เนื้อหาหลัก “เที่ยวไหนดี + Search” -->
     <main class="px-3 md:px-10 py-10 max-w-6xl mx-auto">
       <h1
         class="text-5xl md:text-6xl text-center text-blue-400 font-bold mb-10"
@@ -18,10 +17,22 @@
         />
       </div>
 
-      <!-- States -->
+      <!-- Loading / Error -->
       <Loading v-if="status === 'loading'" />
       <ErrorState v-else-if="status === 'error'" />
-      <EmptyState v-else-if="status === 'success' && trips.length === 0" />
+
+      <!-- ฐานข้อมูลยังว่าง + ยังไม่ได้ค้นหาอะไรเลย -->
+      <EmptyState
+        v-else-if="status === 'success' && trips.length === 0 && !keyword"
+      />
+
+      <!-- ค้นหาแล้ว แต่ไม่เจอผลลัพธ์ -->
+      <p
+        v-else-if="status === 'success' && trips.length === 0 && keyword"
+        class="text-center text-gray-500 py-10"
+      >
+        No trips found. Try a different keyword.
+      </p>
 
       <!-- Trip list -->
       <div
@@ -42,14 +53,14 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import SearchBar from "../components/SearchBar.vue";
-import TripCard from "../components/TripCard.vue";
-import Loading from "../components/state/Loading.vue";
-import ErrorState from "../components/state/ErrorState.vue";
-import EmptyState from "../components/state/EmptyState.vue";
-import { getTrips } from "../services/tripService";
-import type { Trip } from "../types/trip";
-import { useDebouncedEffect } from "../composables/useDebouncedEffect";
+import SearchBar from "@/components/SearchBar.vue";
+import TripCard from "@/components/TripCard.vue";
+import Loading from "@/components/state/Loading.vue";
+import ErrorState from "@/components/state/ErrorState.vue";
+import EmptyState from "@/components/state/EmptyState.vue";
+import { getTrips } from "@/services/tripService";
+import type { Trip } from "@/types/trip";
+import { useDebouncedEffect } from "@/composables/useDebouncedEffect";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -69,7 +80,7 @@ async function fetchTrips() {
   }
 }
 
-// debounce เวลาเปลี่ยน keyword
+// debounce เวลาเปลี่ยน keyword (กันยิง API รัว ๆ)
 useDebouncedEffect(fetchTrips, [keyword], 300);
 
 function handleAddKeyword(tag: string) {
