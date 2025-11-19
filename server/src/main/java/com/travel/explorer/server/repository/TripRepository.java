@@ -10,28 +10,42 @@ import org.springframework.data.repository.query.Param;
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
     /**
-     * ค้นหา trip ด้วย keyword (title / description / province)
-     * คืนเป็น Page เพื่อใช้ pagination
+     * ค้นหา trip ด้วย keyword
+     * - title
+     * - description
+     * - province
+     * - tags (array)
      */
     @Query(
         value = """
-            SELECT t
-            FROM Trip t
+            SELECT *
+            FROM trips t
             WHERE
                 (:keyword IS NULL OR :keyword = '')
                 OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(t.province)    LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR EXISTS (
+                    SELECT 1
+                    FROM unnest(t.tags) tag
+                    WHERE LOWER(tag) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                )
             """,
         countQuery = """
-            SELECT COUNT(t)
-            FROM Trip t
+            SELECT COUNT(*)
+            FROM trips t
             WHERE
                 (:keyword IS NULL OR :keyword = '')
                 OR LOWER(t.title)       LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(t.province)    LIKE LOWER(CONCAT('%', :keyword, '%'))
-            """
+                OR EXISTS (
+                    SELECT 1
+                    FROM unnest(t.tags) tag
+                    WHERE LOWER(tag) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                )
+            """,
+        nativeQuery = true
     )
     Page<Trip> search(
             @Param("keyword") String keyword,
