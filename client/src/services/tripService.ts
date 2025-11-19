@@ -1,6 +1,10 @@
 import type { Trip, PagedTrips } from "../types/trip";
 
-const API_BASE = "http://localhost:8080/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+// base ของทุก endpoint ที่เกี่ยวกับ trips
+const API_BASE = `${API_BASE_URL}/api`;
 
 /**
  * ดึง list trips แบบมี pagination
