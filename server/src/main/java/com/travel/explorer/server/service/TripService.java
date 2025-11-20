@@ -1,9 +1,11 @@
 package com.travel.explorer.server.service;
 
 import com.travel.explorer.server.dto.TripCreateRequest;
+import com.travel.explorer.server.dto.TripUpdateRequest;
 import com.travel.explorer.server.dto.TripResponse;
 import com.travel.explorer.server.entity.Trip;
 import com.travel.explorer.server.entity.User;
+import com.travel.explorer.server.exception.ForbiddenException;
 import com.travel.explorer.server.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -24,6 +26,7 @@ public class TripService {
      */
     public Page<TripResponse> getTrips(String keyword, int page, int size) {
 
+        // ให้ sort id จากมากไปน้อย (ทริปล่าสุดอยู่บน)
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -38,6 +41,7 @@ public class TripService {
             tripPage = tripRepository.search(keyword.toLowerCase(), pageable);
         }
 
+        // map Trip -> TripResponse แล้วคง structure Page เดิมไว้
         return tripPage.map(this::toResponse);
     }
 
@@ -71,14 +75,58 @@ public class TripService {
                 .title(req.getTitle())
                 .description(req.getDescription())
                 .province(req.getProvince())
-                .tags(req.getTags())               // add
-                .latitude(req.getLatitude())       // add
-                .longitude(req.getLongitude())     // add
+                .tags(req.getTags())
+                .latitude(req.getLatitude())
+                .longitude(req.getLongitude())
                 .author(owner)
                 .build();
 
         Trip saved = tripRepository.save(trip);
         return toResponse(saved);
+    }
+
+    /**
+     * แก้ไขทริป (PUT /api/trips/{id})
+     * ให้แก้ไขได้เฉพาะเจ้าของทริปเท่านั้น
+     */
+    public TripResponse updateTrip(Long id, TripUpdateRequest req, User currentUser) {
+
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Trip not found"));
+
+        // เช็คสิทธิ์: ต้องเป็นเจ้าของทริป
+        if (trip.getAuthor() == null ||
+                !trip.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("You are not allowed to edit this trip");
+        }
+
+        // อัปเดต field ต่าง ๆ
+        trip.setTitle(req.getTitle());
+        trip.setDescription(req.getDescription());
+        trip.setProvince(req.getProvince());
+        trip.setTags(req.getTags());
+        trip.setLatitude(req.getLatitude());
+        trip.setLongitude(req.getLongitude());
+
+        Trip saved = tripRepository.save(trip);
+        return toResponse(saved);
+    }
+
+    /**
+     * ลบทริป (DELETE /api/trips/{id})
+     * ลบได้เฉพาะเจ้าของทริป
+     */
+    public void deleteTrip(Long id, User currentUser) {
+
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Trip not found"));
+
+        if (trip.getAuthor() == null ||
+                !trip.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("You are not allowed to delete this trip");
+        }
+
+        tripRepository.delete(trip);
     }
 
     // -------------------------
