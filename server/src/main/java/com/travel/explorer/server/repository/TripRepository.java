@@ -1,11 +1,14 @@
 package com.travel.explorer.server.repository;
 
 import com.travel.explorer.server.entity.Trip;
+import com.travel.explorer.server.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
@@ -51,4 +54,11 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    /**
+     * ดึงรายการทริปของ user คนหนึ่ง
+     * ใช้กับ Dashboard (/api/trips/mine)
+     * เรียง id จากมากไปน้อย (ทริปที่สร้างล่าสุดอยู่บนสุด)
+     */
+    List<Trip> findByAuthorOrderByIdDesc(User author);
 }
