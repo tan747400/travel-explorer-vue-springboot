@@ -1,14 +1,30 @@
 import { defineStore } from "pinia";
 
-interface User {
+export interface AuthUser {
+  userId: number;
   email: string;
-  displayName?: string;
+  displayName: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  email: string;
+  displayName: string;
 }
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     token: localStorage.getItem("token") || "",
-    user: JSON.parse(localStorage.getItem("user") || "null") as User | null,
+    user: ((): AuthUser | null => {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as AuthUser;
+      } catch {
+        return null;
+      }
+    })(),
   }),
 
   getters: {
@@ -16,16 +32,37 @@ export const useAuthStore = defineStore("auth", {
   },
 
   actions: {
-    // เรียกตอน login สำเร็จ
-    login(token: string, user: User) {
-      this.token = token;
-      this.user = user;
+    /**
+     * ใช้ตอน login สำเร็จ รับทั้ง AuthResponse จาก backend
+     */
+    setAuth(payload: AuthResponse) {
+      this.token = payload.token;
+      this.user = {
+        userId: payload.userId,
+        email: payload.email,
+        displayName: payload.displayName,
+      };
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", payload.token);
+      localStorage.setItem("user", JSON.stringify(this.user));
     },
 
-    // logout
+    /**
+     * เผื่อโค้ดเดิมที่ยังเรียก authStore.login(token, user)
+     * จะให้ทำงานเหมือน setAuth แต่ไม่บังคับต้องมี userId
+     */
+    login(token: string, user: { email: string; displayName?: string }) {
+      this.token = token;
+      this.user = {
+        userId: this.user?.userId ?? 0, // ถ้าไม่มีให้เป็น 0 ไปก่อน
+        email: user.email,
+        displayName: user.displayName || "",
+      };
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(this.user));
+    },
+
     logout() {
       this.token = "";
       this.user = null;

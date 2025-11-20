@@ -96,11 +96,17 @@ async function fetchMyTrips() {
   loading.value = true;
   error.value = "";
 
+  if (!auth.token) {
+    error.value = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    loading.value = false;
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE_URL}/api/trips/mine`, {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${auth.token}`, // ใช้ token จาก Pinia
+        Authorization: `Bearer ${auth.token}`,
       },
     });
 
@@ -115,7 +121,6 @@ async function fetchMyTrips() {
     const data = await res.json();
     trips.value = data;
   } catch (err: any) {
-    console.error(err);
     error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
   } finally {
     loading.value = false;
