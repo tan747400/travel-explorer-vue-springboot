@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 // Pages
-import HomePage from "../pages/HomePage.vue";
-import TripDetailPage from "../pages/TripDetailPage.vue";
-import LoginPage from "../pages/LoginPage.vue";
+import HomePage from "@/pages/HomePage.vue";
+import TripDetailPage from "@/pages/TripDetailPage.vue";
+import LoginPage from "@/pages/LoginPage.vue";
 import RegisterPage from "@/pages/RegisterPage.vue";
 import DashboardPage from "@/pages/DashboardPage.vue";
-// Pinia auth store
+import CreateTripPage from "@/pages/CreateTripPage.vue";
+
+// Pinia Store
 import { useAuthStore } from "@/stores/authStore";
 
 const routes = [
@@ -20,7 +22,15 @@ const routes = [
     path: "/dashboard",
     name: "dashboard",
     component: DashboardPage,
-    meta: { requiresAuth: true }, // ต้องล็อกอินก่อนเข้า
+    meta: { requiresAuth: true },
+  },
+
+  // ⭐ Route ใหม่สำหรับ "สร้างทริป"
+  {
+    path: "/dashboard/create",
+    name: "trip-create",
+    component: CreateTripPage,
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -32,21 +42,20 @@ const router = createRouter({
 // =====================
 // Global Navigation Guard
 // =====================
-
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
   const isLoggedIn = !!authStore.token;
 
-  // หน้าที่ต้องล็อกอิน แต่ user ยังไม่ล็อกอิน
+  // ต้องล็อกอินก่อนเข้า (Dashboard + Create)
   if (to.meta.requiresAuth && !isLoggedIn) {
     return next({
       name: "login",
-      query: { redirect: to.fullPath }, // login เสร็จจะได้กลับมาหน้านี้
+      query: { redirect: to.fullPath },
     });
   }
 
-  // ถ้าล็อกอินแล้ว แต่จะเข้า login หรือ register → redirect กลับ home
+  // ไม่ให้เข้าหน้า login/register ถ้าล็อกอินแล้ว
   if ((to.name === "login" || to.name === "register") && isLoggedIn) {
     return next({ name: "home" });
   }
