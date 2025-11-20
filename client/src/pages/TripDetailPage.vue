@@ -1,187 +1,207 @@
 <template>
-  <div class="px-3 md:px-10 py-10 max-w-6xl mx-auto">
-    <!-- Loading / Error -->
-    <Loading v-if="status === 'loading'" />
-    <ErrorState v-else-if="status === 'error'" />
-
-    <template v-else-if="trip">
-      <!-- ชื่อ + ที่อยู่ -->
-      <header class="mb-6">
-        <h1 class="text-3xl md:text-4xl font-bold mb-2">
+  <div class="max-w-6xl mx-auto px-4 py-10" v-if="trip">
+    <!-- ชื่อ + สถานที่ -->
+    <header
+      class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-2"
+    >
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold mb-1">
           {{ trip.title }}
         </h1>
-        <p class="text-gray-600 text-sm md:text-base">
-          {{ trip.address || trip.province || "ไม่มีข้อมูลที่อยู่" }}
+        <p class="text-sky-700 text-sm">
+          {{ trip.province || "ไม่ระบุสถานที่" }}
         </p>
-      </header>
+        <p class="text-xs text-gray-500 mt-1">
+          สร้างโดย: {{ trip.authorName || "-" }}
+        </p>
+      </div>
+    </header>
 
-      <!-- layout 2 คอลัมน์บน desktop -->
-      <div class="flex flex-col md:flex-row gap-8">
-        <!-- ซ้าย: รูป + รายละเอียด -->
-        <section class="md:w-2/3 flex flex-col gap-4">
-          <!-- รูปหลัก (เปลี่ยนตามรูปที่คลิก) -->
-          <div v-if="mainPhoto" class="w-full h-64 md:h-80">
-            <img
-              :src="mainPhoto"
-              :alt="trip.title"
-              class="w-full h-full object-cover rounded-3xl"
-            />
-          </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- รูปหลัก + แกลเลอรี -->
+      <section class="lg:col-span-2 space-y-4">
+        <!-- รูปหลัก -->
+        <div
+          v-if="trip.photos && trip.photos.length > 0"
+          class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
+        >
+          <img
+            :src="currentMainImage"
+            :alt="trip.title"
+            class="h-full w-full object-cover"
+          />
+        </div>
+        <div
+          v-else
+          class="aspect-[16/9] rounded-2xl bg-slate-100 flex items-center justify-center text-gray-400 text-sm"
+        >
+          ยังไม่มีรูปภาพสำหรับทริปนี้
+        </div>
 
-          <!-- แกลลอรี่รูปย่อย (คลิกเพื่อเปลี่ยนรูปหลัก) -->
-          <div
-            v-if="thumbnailPhotos.length"
-            class="grid grid-cols-2 md:grid-cols-3 gap-2"
+        <!-- รูปย่อยแถวล่าง ถ้ามีมากกว่า 1 รูป -->
+        <div
+          v-if="trip.photos && trip.photos.length > 1"
+          class="grid grid-cols-3 gap-2"
+        >
+          <button
+            v-for="(p, idx) in trip.photos"
+            :key="idx"
+            type="button"
+            class="relative group"
+            @click="selectPhoto(idx)"
           >
-            <button
-              v-for="thumb in thumbnailPhotos"
-              :key="thumb.idx"
-              type="button"
-              class="relative w-full h-24 md:h-28 rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-sky-400"
-              @click="selectPhoto(thumb.idx)"
-            >
-              <img
-                :src="thumb.src"
-                :alt="`${trip.title} ${thumb.idx + 1}`"
-                class="w-full h-full object-cover"
-              />
-              <!-- เส้นขอบบาง ๆ เวลา hover -->
-              <span
-                class="pointer-events-none absolute inset-0 border border-transparent hover:border-white/80"
-              />
-            </button>
-          </div>
+            <img
+              :src="p"
+              class="h-24 w-full rounded-lg object-cover transition-opacity"
+              :class="idx === mainImageIndex ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'"
+            />
 
-          <!-- คำอธิบาย -->
-          <div>
-            <h2 class="font-semibold mb-2">รายละเอียดสถานที่</h2>
-            <p class="text-gray-700 leading-relaxed whitespace-pre-line">
-              {{ trip.description || "ไม่มีคำอธิบาย" }}
-            </p>
-          </div>
-
-          <!-- tags -->
-          <div v-if="trip.tags?.length" class="mt-2 flex flex-wrap gap-2">
+            <!-- เส้นขอบบอกว่ารูปไหนถูกเลือก -->
             <span
-              v-for="tag in trip.tags"
-              :key="tag"
-              class="px-3 py-1 bg-sky-50 text-sky-700 text-xs rounded-full"
-            >
-              {{ tag }}
-            </span>
-          </div>
-        </section>
+              v-if="idx === mainImageIndex"
+              class="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-sky-500"
+            ></span>
+          </button>
+        </div>
+      </section>
 
-        <!-- ขวา: แผนที่ -->
-        <aside class="md:w-1/3">
-          <h2 class="font-semibold mb-3">แผนที่</h2>
+      <!-- แผนที่ -->
+      <aside class="space-y-3">
+        <h2 class="font-semibold mb-1">แผนที่</h2>
 
-          <div v-if="hasCoordinates" class="space-y-3">
-            <div class="w-full h-64 border rounded-xl overflow-hidden">
-              <iframe
-                class="w-full h-full"
-                :src="mapEmbedUrl"
-                style="border:0;"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-              />
-            </div>
+        <div
+          v-if="hasLocation"
+          class="rounded-xl overflow-hidden border bg-white"
+        >
+          <iframe
+            :src="mapEmbedUrl"
+            width="100%"
+            height="260"
+            style="border:0;"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
 
+          <div class="p-3 border-t text-right">
             <a
-              :href="googleMapsLink"
+              :href="mapExternalUrl"
               target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center text-sky-600 underline text-sm"
+              rel="noreferrer"
+              class="text-xs text-sky-600 hover:underline"
             >
               View on Google Maps
             </a>
           </div>
+        </div>
 
-          <p v-else class="text-gray-500 text-sm">
-            Map information not available for this destination.
-          </p>
-        </aside>
+        <p v-else class="text-sm text-gray-500">
+          ยังไม่มีข้อมูลพิกัดของสถานที่นี้
+        </p>
+      </aside>
+    </div>
+
+    <!-- รายละเอียด + TAGS -->
+    <section class="mt-8 space-y-3">
+      <h2 class="font-semibold text-lg">รายละเอียดสถานที่</h2>
+      <p class="text-sm text-gray-700">
+        {{ trip.description || "ยังไม่มีรายละเอียดของทริปนี้" }}
+      </p>
+
+      <!-- แสดง tags เป็นป้าย -->
+      <div
+        v-if="trip.tags && trip.tags.length > 0"
+        class="mt-4 flex flex-wrap gap-2"
+      >
+        <span
+          v-for="tag in trip.tags"
+          :key="tag"
+          class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
+        >
+          #{{ tag }}
+        </span>
       </div>
-    </template>
+    </section>
+  </div>
 
-    <EmptyState v-else />
+  <!-- Loading / Error -->
+  <div class="max-w-6xl mx-auto px-4 py-10" v-else>
+    <p v-if="loading" class="text-gray-500">กำลังโหลดข้อมูลทริป...</p>
+    <p v-else-if="error" class="text-red-500">
+      {{ error }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import Loading from "../components/state/Loading.vue";
-import ErrorState from "../components/state/ErrorState.vue";
-import EmptyState from "../components/state/EmptyState.vue";
-import { getTripById } from "../services/tripService";
-import type { Trip } from "../types/trip";
-
-type Status = "idle" | "loading" | "success" | "error";
+import type { Trip } from "@/types/trip";
+import { getTripById } from "@/services/tripService";
 
 const route = useRoute();
+
 const trip = ref<Trip | null>(null);
-const status = ref<Status>("idle");
+const loading = ref(false);
+const error = ref("");
 
-// index ของรูปที่ถูกเลือก (0 = รูปแรก)
-const activePhotoIndex = ref(0);
+// index ของรูปที่เป็น "รูปหลัก"
+const mainImageIndex = ref(0);
 
-const tripId = computed(() => Number(route.params.id));
+// รูปหลักที่ใช้แสดงด้านบน
+const currentMainImage = computed(() => {
+  if (!trip.value || !trip.value.photos || trip.value.photos.length === 0) {
+    return "";
+  }
+  return trip.value.photos[mainImageIndex.value] ?? trip.value.photos[0];
+});
 
-// ลิสต์รูปทั้งหมด
-const photos = computed(() => trip.value?.photos ?? []);
-
-// รูปหลักที่แสดงด้านบน
-const mainPhoto = computed(() =>
-  photos.value.length > 0 ? photos.value[activePhotoIndex.value] : null
+// มีพิกัดไหม
+const hasLocation = computed(
+  () => trip.value?.latitude != null && trip.value?.longitude != null
 );
 
-// รูป thumbnail ด้านล่าง (เอาทุกรูปที่ไม่ใช่รูปหลัก แล้วจำกัดสัก 3 รูปเหมือนเดิม)
-const thumbnailPhotos = computed(() =>
-  photos.value
-    .map((src, idx) => ({ src, idx }))
-    .filter((p) => p.idx !== activePhotoIndex.value)
-    .slice(0, 3)
-);
-
-const hasCoordinates = computed(
-  () =>
-    !!trip.value &&
-    trip.value.latitude != null &&
-    trip.value.longitude != null
-);
-
+// สร้าง URL สำหรับ iframe (ไม่ต้องใช้ API key)
 const mapEmbedUrl = computed(() => {
-  if (!hasCoordinates.value || !trip.value) return "";
-  const { latitude, longitude } = trip.value;
-  return `https://www.google.com/maps?q=${latitude},${longitude}&hl=th&z=14&output=embed`;
+  if (!hasLocation.value || !trip.value) return "";
+  const lat = trip.value.latitude;
+  const lng = trip.value.longitude;
+  return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
 });
 
-const googleMapsLink = computed(() => {
-  if (!hasCoordinates.value || !trip.value) return "#";
-  const { latitude, longitude } = trip.value;
-  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+// ลิงก์ไปหน้า Google Maps จริง
+const mapExternalUrl = computed(() => {
+  if (!hasLocation.value || !trip.value) return "#";
+  const lat = trip.value.latitude;
+  const lng = trip.value.longitude;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
 });
 
-async function fetchTrip() {
+function selectPhoto(idx: number) {
+  // กัน index เกิน
+  if (!trip.value?.photos) return;
+  if (idx < 0 || idx >= trip.value.photos.length) return;
+  mainImageIndex.value = idx;
+}
+
+async function loadTrip() {
+  loading.value = true;
+  error.value = "";
+
   try {
-    status.value = "loading";
-    const data = await getTripById(tripId.value);
+    const id = Number(route.params.id);
+    const data = await getTripById(id);
     trip.value = data;
-    status.value = "success";
-
-    // โหลดเสร็จให้ default เป็นรูปแรกเสมอ
-    activePhotoIndex.value = 0;
-  } catch (err) {
+    mainImageIndex.value = 0; // reset ทุกครั้งที่เปลี่ยนทริป
+  } catch (err: any) {
     console.error(err);
-    status.value = "error";
+    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+  } finally {
+    loading.value = false;
   }
 }
 
-// เวลา user คลิกที่รูปย่อย → เปลี่ยน index
-function selectPhoto(idx: number) {
-  activePhotoIndex.value = idx;
-}
-
-onMounted(fetchTrip);
+onMounted(() => {
+  loadTrip();
+});
 </script>

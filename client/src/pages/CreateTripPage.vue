@@ -17,8 +17,8 @@
       </div>
 
       <p class="text-gray-600 mb-6 text-sm">
-        กรอกข้อมูลสถานที่เที่ยวที่คุณอยากแชร์ แล้วกดบันทึก
-        ระบบจะบันทึกทริปนี้ไว้ใน Dashboard ของคุณ
+        กรอกข้อมูลสถานที่เที่ยวที่คุณอยากแชร์ แล้วกดบันทึก ระบบจะบันทึกทริปนี้ไว้ใน
+        Dashboard ของคุณ
       </p>
 
       <!-- ฟอร์มสร้างทริป -->
@@ -37,16 +37,16 @@
           />
         </div>
 
-        <!-- Province -->
+        <!-- Places -->
         <div>
           <label class="block text-sm font-medium mb-1">
-            จังหวัด<span class="text-red-500">*</span>
+            สถานที่<span class="text-red-500">*</span>
           </label>
           <input
             v-model="province"
             type="text"
             class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="เช่น เชียงใหม่"
+            placeholder="เช่น เชียงใหม่ ฟินแลนด์"
             required
           />
         </div>
@@ -65,6 +65,51 @@
           <p class="text-xs text-gray-400 mt-1">
             (ไม่เกิน 1000 ตัวอักษร)
           </p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            แท็ก (คั่นด้วยเครื่องหมายจุลภาค ,)
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+            placeholder="เช่น ธรรมชาติ, ภูเขา, หน้าหนาว"
+          />
+          <p class="text-xs text-gray-400 mt-1">
+            ใช้สำหรับค้นหา / แสดงเป็นป้ายกำกับ เช่น “ทะเล”, “ธรรมชาติ”
+          </p>
+        </div>
+
+        <!-- Latitude / Longitude -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Latitude
+            </label>
+            <input
+              v-model="latitude"
+              type="number"
+              step="0.000001"
+              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="เช่น 66.5039"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              Longitude
+            </label>
+            <input
+              v-model="longitude"
+              type="number"
+              step="0.000001"
+              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="เช่น 25.7294"
+            />
+          </div>
         </div>
 
         <!-- Error message -->
@@ -104,8 +149,14 @@ const router = useRouter();
 const auth = useAuthStore();
 
 const title = ref("");
-const province = ref("");
+const province = ref(""); // ใช้แทน field เดิม แต่ label UI เป็น “สถานที่”
 const description = ref("");
+
+// new fields
+const tagsInput = ref(""); 
+const latitude = ref("");
+const longitude = ref("");
+
 const loading = ref(false);
 const error = ref("");
 
@@ -115,29 +166,33 @@ const API_BASE_URL =
 async function handleSubmit() {
   error.value = "";
 
-  // กันกรณีไม่มี token (เผื่อหลุด session หรือเข้ามาทางแปลก ๆ)
   if (!auth.token) {
     error.value = "กรุณาเข้าสู่ระบบก่อนสร้างทริปใหม่";
     return;
   }
 
-  // validation ฝั่ง frontend เพิ่มเติมจาก required
   const titleTrim = title.value.trim();
   const provinceTrim = province.value.trim();
   const descriptionTrim = description.value.trim();
 
-  if (titleTrim.length === 0) {
+  if (!titleTrim) {
     error.value = "กรุณากรอกชื่อทริป";
     return;
   }
-  if (provinceTrim.length === 0) {
-    error.value = "กรุณากรอกจังหวัด";
+  if (!provinceTrim) {
+    error.value = "กรุณากรอกสถานที่";   // ปรับให้ตรงกับ UI
     return;
   }
-  if (descriptionTrim.length > 1000) {
-    error.value = "รายละเอียดต้องไม่เกิน 1000 ตัวอักษร";
-    return;
-  }
+
+  // Tags → array
+  const tags = tagsInput.value
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+
+  // lat/lng → number|null
+  const latNum = latitude.value ? Number(latitude.value) : null;
+  const lngNum = longitude.value ? Number(longitude.value) : null;
 
   loading.value = true;
 
@@ -150,8 +205,11 @@ async function handleSubmit() {
       },
       body: JSON.stringify({
         title: titleTrim,
-        province: provinceTrim,
+        province: provinceTrim, // backend ยังต้องใช้ชื่อ field นี้
         description: descriptionTrim || null,
+        tags: tags.length > 0 ? tags : null,
+        latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
+        longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
       }),
     });
 
@@ -164,15 +222,14 @@ async function handleSubmit() {
       try {
         const data = await res.json();
         if (data?.message) msg = data.message;
-      } catch {
-        // ถ้า parse ไม่ได้ ใช้ข้อความ default
-      }
+      } catch {}
       throw new Error(msg);
     }
 
     alert("บันทึกทริปเรียบร้อยแล้ว");
     router.push({ name: "dashboard" });
   } catch (err: any) {
+    console.error(err);
     error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
   } finally {
     loading.value = false;
