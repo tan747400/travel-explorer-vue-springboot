@@ -24,7 +24,6 @@ public class TripService {
      */
     public Page<TripResponse> getTrips(String keyword, int page, int size) {
 
-        // ให้ sort id จากมากไปน้อย (ทริปล่าสุดอยู่บน)
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -39,7 +38,6 @@ public class TripService {
             tripPage = tripRepository.search(keyword.toLowerCase(), pageable);
         }
 
-        // map Trip -> TripResponse แล้วคง structure Page เดิมไว้
         return tripPage.map(this::toResponse);
     }
 
@@ -73,22 +71,14 @@ public class TripService {
                 .title(req.getTitle())
                 .description(req.getDescription())
                 .province(req.getProvince())
+                .tags(req.getTags())               // add
+                .latitude(req.getLatitude())       // add
+                .longitude(req.getLongitude())     // add
                 .author(owner)
                 .build();
 
-        Trip saved = tripRepository.save(savedTripWithDefaults(trip));
+        Trip saved = tripRepository.save(trip);
         return toResponse(saved);
-    }
-
-    /**
-     * ถ้าอยากเซ็ตค่า default อื่น ๆ (เช่น photos/tags ว่าง ๆ) ใส่ในเมธอดนี้ได้
-     */
-    private Trip savedTripWithDefaults(Trip trip) {
-        // ตัวอย่าง: ถ้า field ใน entity เป็น null แล้ว DB ไม่ชอบ
-        // ก็สามารถเซ็ต list ว่างแทนได้
-        // if (trip.getPhotos() == null) trip.setPhotos(new ArrayList<>());
-        // if (trip.getTags() == null) trip.setTags(new ArrayList<>());
-        return tripRepository.save(trip);
     }
 
     // -------------------------
