@@ -24,10 +24,9 @@ public class TripController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
-    /**
-     * GET /api/trips?keyword=&page=0&size=6
-     * ใช้กับหน้า Landing + Search
-     */
+    // ---------------------------
+    // GET /api/trips (Landing + Search)
+    // ---------------------------
     @GetMapping
     public Page<TripResponse> getTrips(
             @RequestParam(name = "keyword", required = false) String keyword,
@@ -37,19 +36,17 @@ public class TripController {
         return tripService.getTrips(keyword, page, size);
     }
 
-    /**
-     * GET /api/trips/{id}
-     * ใช้กับหน้า Detail page
-     */
+    // ---------------------------
+    // GET /api/trips/{id} (Detail)
+    // ---------------------------
     @GetMapping("/{id}")
     public TripResponse getTrip(@PathVariable Long id) {
         return tripService.getTripById(id);
     }
 
-    /**
-     * GET /api/trips/mine
-     * ใช้กับ Dashboard ดึงรายการทริปของ user คนเดียว
-     */
+    // ---------------------------
+    // GET /api/trips/mine (Dashboard)
+    // ---------------------------
     @GetMapping("/mine")
     public ResponseEntity<List<TripResponse>> getMyTrips(
             @RequestHeader(name = "Authorization", required = false) String authHeader
@@ -59,7 +56,14 @@ public class TripController {
         }
 
         String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            // token เสีย / หมดอายุ / verify ไม่ผ่าน
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -70,10 +74,9 @@ public class TripController {
         return ResponseEntity.ok(trips);
     }
 
-    /**
-     * POST /api/trips
-     * ใช้สำหรับสร้างทริปใหม่ (เฉพาะคนล็อกอิน)
-     */
+    // ---------------------------
+    // POST /api/trips (Create Trip)
+    // ---------------------------
     @PostMapping
     public ResponseEntity<TripResponse> createTrip(
             @RequestHeader(name = "Authorization", required = false) String authHeader,
@@ -84,7 +87,13 @@ public class TripController {
         }
 
         String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {

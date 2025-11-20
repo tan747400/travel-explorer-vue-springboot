@@ -27,24 +27,35 @@ public class JwtService {
     }
 
     /**
-     * สร้าง JWT token
+     * สร้าง JWT token พร้อม claims เพิ่มเติม
+     * - subject: ใช้เก็บ email (หรือ user identifier)
+     * - claims: ใช้เก็บข้อมูลเพิ่ม เช่น role, displayName ฯลฯ
      */
     public String generateToken(String subject, Map<String, Object> claims) {
         long now = System.currentTimeMillis();
         long exp = now + jwtProperties.getExpiration();
 
+        // ถ้า claims เป็น null ให้ใช้ map ว่างแทน
+        Map<String, Object> safeClaims = (claims != null) ? claims : Map.of();
+
         return Jwts.builder()
-                .setSubject(subject)     // ใช้ email เป็น subject
-                .setClaims(claims)
+                .setClaims(safeClaims)         // ต้องมาก่อน
+                .setSubject(subject)           // แล้วค่อย set subject
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(exp))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    /**
+     * helper เผื่ออยากสร้าง token แบบไม่มี claims เพิ่มเติม
+     */
+    public String generateToken(String subject) {
+        return generateToken(subject, Map.of());
+    }
 
     // ==========================================================
-    // 🔥 เพิ่มส่วนนี้ เพื่อให้ TripController ใช้งานได้
+    // ใช้ฝั่งอ่านข้อมูลจาก token
     // ==========================================================
 
     /**
