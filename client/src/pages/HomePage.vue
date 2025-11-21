@@ -16,12 +16,12 @@
         />
       </div>
 
-      <!-- States หลัก -->
+      <!-- States -->
       <Loading v-if="status === 'loading'" />
       <ErrorState v-else-if="status === 'error'" />
       <EmptyState v-else-if="status === 'success' && trips.length === 0" />
 
-      <!-- Trip list -->
+      <!-- Trip List -->
       <div
         v-else-if="status === 'success' && trips.length > 0"
         class="flex flex-col gap-6 max-w-6xl mx-auto"
@@ -34,7 +34,7 @@
           @addKeyword="handleAddKeyword"
         />
 
-        <!-- ปุ่ม Load more -->
+        <!-- Load more -->
         <div class="flex justify-center mt-6">
           <button
             v-if="!lastPage"
@@ -73,52 +73,49 @@ const trips = ref<Trip[]>([]);
 const status = ref<Status>("idle");
 const keyword = ref("");
 
-// pagination state
-const page = ref(0);        // หน้า "ถัดไป" ที่จะไปดึง (0-based)
-const size = ref(6);        // จำนวน item ต่อหน้า
+// Pagination state
+const page = ref(0);
+const size = ref(6);
 const lastPage = ref(false);
 const loadingMore = ref(false);
 
 /**
  * ดึง trips จาก backend
- * @param reset  true = เริ่มใหม่ (เปลี่ยน keyword / เข้าเพจครั้งแรก)
- *               false = โหลดหน้าถัดไป (load more)
+ * reset = true  → โหลดหน้าแรกใหม่ (เปลี่ยน keyword)
+ * reset = false → load more (เพิ่มหน้าใหม่)
  */
 async function fetchTrips(reset: boolean) {
   try {
     if (reset) {
-      status.value = "loading";
       trips.value = [];
       page.value = 0;
       lastPage.value = false;
+      status.value = "loading";
     } else {
       loadingMore.value = true;
     }
 
-    const result = await getTrips(keyword.value, page.value, size.value);
+    const res = await getTrips(keyword.value, page.value, size.value);
 
     if (reset) {
-      trips.value = result.content;
+      trips.value = res.content;
     } else {
-      trips.value = [...trips.value, ...result.content];
+      trips.value = [...trips.value, ...res.content];
     }
 
-    lastPage.value = result.last;
-    // เตรียม page สำหรับครั้งถัดไป
-    page.value = result.number + 1;
+    lastPage.value = res.last;
+    page.value = res.number + 1;
 
     status.value = "success";
   } catch (err) {
     console.error(err);
-    if (reset) {
-      status.value = "error";
-    }
+    if (reset) status.value = "error";
   } finally {
     loadingMore.value = false;
   }
 }
 
-// debounce เวลา keyword เปลี่ยน → รีเฟรช list ใหม่
+// Debounce keyword search
 useDebouncedEffect(
   () => {
     fetchTrips(true);
@@ -127,17 +124,14 @@ useDebouncedEffect(
   300
 );
 
-// โหลดรอบแรก
+// Initial load
 onMounted(() => {
   fetchTrips(true);
 });
 
+// จาก TripCard → เพิ่ม keyword อัตโนมัติ
 function handleAddKeyword(tag: string) {
-  const tokens = keyword.value
-    .trim()
-    .split(" ")
-    .filter((t) => t.length > 0);
-
+  const tokens = keyword.value.trim().split(" ").filter(Boolean);
   if (!tokens.includes(tag)) {
     keyword.value = keyword.value ? `${keyword.value} ${tag}` : tag;
   }

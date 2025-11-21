@@ -5,7 +5,7 @@ const API_BASE_URL =
 
 const API_BASE = `${API_BASE_URL}/api`;
 
-/** ดึง list trips แบบมี pagination */
+/** ดึง Trips แบบ Pagination + Search */
 export async function getTrips(
   keyword = "",
   page = 0,
@@ -13,53 +13,41 @@ export async function getTrips(
 ): Promise<PagedTrips> {
   const params = new URLSearchParams();
 
-  if (keyword.trim()) {
-    params.set("keyword", keyword.trim());
-  }
-
+  if (keyword.trim()) params.set("keyword", keyword.trim());
   params.set("page", String(page));
   params.set("size", String(size));
 
-  const url = `${API_BASE}/trips?${params.toString()}`;
+  const res = await fetch(`${API_BASE}/trips?${params.toString()}`);
 
-  const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to fetch trips: ${res.status} ${res.statusText}`);
+    throw new Error(`โหลดทริปไม่สำเร็จ (${res.status})`);
   }
 
   return (await res.json()) as PagedTrips;
 }
 
-/** ดึงทริปตัวเดียวตาม id */
+/** ดึงทริปเดี่ยว */
 export async function getTripById(id: number): Promise<Trip> {
   const res = await fetch(`${API_BASE}/trips/${id}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch trip id=${id}: ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`ไม่พบข้อมูลทริป (${res.status})`);
   return (await res.json()) as Trip;
 }
 
-/** ดึงทริปของ user ปัจจุบัน (ใช้ใน Dashboard) */
+/** ดึงทริปของ user ปัจจุบัน */
 export async function getMyTrips(token: string): Promise<Trip[]> {
   const res = await fetch(`${API_BASE}/trips/mine`, {
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (res.status === 401) {
-    throw new Error("กรุณาเข้าสู่ระบบก่อนเข้าหน้านี้");
-  }
-
-  if (!res.ok) {
-    throw new Error(`โหลดทริปไม่สำเร็จ (HTTP ${res.status})`);
-  }
+  if (res.status === 401) throw new Error("กรุณาเข้าสู่ระบบใหม่");
+  if (!res.ok) throw new Error("โหลดทริปไม่สำเร็จ");
 
   return (await res.json()) as Trip[];
 }
 
-/** payload ที่ใช้ทั้ง create/update */
+/** Payload */
 export interface TripPayload {
   title: string;
   province: string;
@@ -69,7 +57,7 @@ export interface TripPayload {
   longitude: number | null;
 }
 
-/** สร้างทริปใหม่ */
+/** สร้างทริป */
 export async function createTrip(
   token: string,
   payload: TripPayload
@@ -83,22 +71,14 @@ export async function createTrip(
     body: JSON.stringify(payload),
   });
 
-  if (res.status === 401) {
-    throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง (401)");
-  }
-
   const text = await res.text();
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
-  } catch {
-    // response ไม่ใช่ JSON ก็ข้ามไป
-  }
+  } catch {}
 
   if (!res.ok) {
-    const backendMsg = data?.message || data?.error;
-    const msg =
-      backendMsg || `บันทึกทริปไม่สำเร็จ (HTTP ${res.status})`;
+    const msg = data?.message || data?.error || "บันทึกทริปไม่สำเร็จ";
     throw new Error(msg);
   }
 
@@ -120,13 +100,6 @@ export async function updateTrip(
     body: JSON.stringify(payload),
   });
 
-  if (res.status === 401) {
-    throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-  }
-  if (res.status === 403) {
-    throw new Error("คุณไม่มีสิทธิ์แก้ไขทริปนี้");
-  }
-
   const text = await res.text();
   let data: any = null;
   try {
@@ -134,9 +107,7 @@ export async function updateTrip(
   } catch {}
 
   if (!res.ok) {
-    const backendMsg = data?.message || data?.error;
-    const msg =
-      backendMsg || `บันทึกการแก้ไขไม่สำเร็จ (HTTP ${res.status})`;
+    const msg = data?.message || data?.error || "แก้ไขทริปไม่สำเร็จ";
     throw new Error(msg);
   }
 
@@ -147,24 +118,12 @@ export async function updateTrip(
 export async function deleteTrip(id: number, token: string): Promise<void> {
   const res = await fetch(`${API_BASE}/trips/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (res.status === 401) {
-    throw new Error("กรุณาเข้าสู่ระบบใหม่อีกครั้ง (401)");
-  }
+  if (res.status === 401) throw new Error("กรุณาเข้าสู่ระบบใหม่");
+  if (res.status === 403) throw new Error("คุณไม่มีสิทธิ์ลบทริปนี้");
+  if (res.status === 404) throw new Error("ไม่พบทริป");
 
-  if (res.status === 403) {
-    throw new Error("คุณไม่มีสิทธิ์ลบทริปนี้ (403)");
-  }
-
-  if (res.status === 404) {
-    throw new Error("ไม่พบทริปที่ต้องการลบ (404)");
-  }
-
-  if (!res.ok) {
-    throw new Error(`ลบทริปไม่สำเร็จ (HTTP ${res.status})`);
-  }
+  if (!res.ok) throw new Error("ลบทริปไม่สำเร็จ");
 }
