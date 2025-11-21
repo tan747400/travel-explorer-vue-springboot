@@ -133,6 +133,10 @@ import { useRoute } from "vue-router";
 import type { Trip } from "@/types/trip";
 import { getTripById } from "@/services/tripService";
 
+// Toast
+import { useToast } from "vue-toastification";
+const toast = useToast();
+
 const route = useRoute();
 
 const trip = ref<Trip | null>(null);
@@ -146,8 +150,8 @@ const currentMainImage = computed(() => {
   return trip.value.photos[mainImageIndex.value] ?? trip.value.photos[0];
 });
 
-const hasLocation = computed(() =>
-  trip.value?.latitude != null && trip.value?.longitude != null
+const hasLocation = computed(
+  () => trip.value?.latitude != null && trip.value?.longitude != null
 );
 
 const mapEmbedUrl = computed(() => {
@@ -176,7 +180,9 @@ async function loadTrip() {
     mainImageIndex.value = 0;
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    error.value = message;
+    toast.error(message);
   } finally {
     loading.value = false;
   }

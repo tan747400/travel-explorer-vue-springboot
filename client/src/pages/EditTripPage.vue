@@ -145,6 +145,10 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { getTripById, updateTrip } from "@/services/tripService";
 
+// Toast
+import { useToast } from "vue-toastification";
+const toast = useToast();
+
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
@@ -190,7 +194,9 @@ onMounted(async () => {
     longitude.value = trip.longitude != null ? String(trip.longitude) : "";
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    error.value = message;
+    toast.error(message);
   } finally {
     loading.value = false;
   }
@@ -200,7 +206,9 @@ async function handleSubmit() {
   error.value = "";
 
   if (!auth.token) {
-    error.value = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
+    const message = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
+    error.value = message;
+    toast.error(message);
     return;
   }
 
@@ -209,11 +217,15 @@ async function handleSubmit() {
   const descriptionTrim = description.value.trim();
 
   if (!titleTrim) {
-    error.value = "กรุณากรอกชื่อทริป";
+    const message = "กรุณากรอกชื่อทริป";
+    error.value = message;
+    toast.warning(message);
     return;
   }
   if (!provinceTrim) {
-    error.value = "กรุณากรอกสถานที่";
+    const message = "กรุณากรอกสถานที่";
+    error.value = message;
+    toast.warning(message);
     return;
   }
 
@@ -234,11 +246,13 @@ async function handleSubmit() {
       longitude: longitude.value ? Number(longitude.value) : null,
     });
 
-    alert("แก้ไขทริปสำเร็จ");
+    toast.success("แก้ไขทริปสำเร็จ 🎉");
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "เกิดข้อผิดพลาด";
+    const message = err.message || "เกิดข้อผิดพลาดในการบันทึกทริป";
+    error.value = message;
+    toast.error(message);
   } finally {
     loading.value = false;
   }

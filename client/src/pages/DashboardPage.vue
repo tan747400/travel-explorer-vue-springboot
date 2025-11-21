@@ -119,6 +119,10 @@ import {
   getMyTrips,
 } from "@/services/tripService";
 
+// Toast
+import { useToast } from "vue-toastification";
+const toast = useToast();
+
 const auth = useAuthStore();
 const router = useRouter();
 
@@ -132,7 +136,9 @@ async function fetchMyTrips() {
   error.value = "";
 
   if (!auth.token) {
-    error.value = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    error.value = message;
+    toast.error(message);
     loading.value = false;
     return;
   }
@@ -141,7 +147,9 @@ async function fetchMyTrips() {
     trips.value = await getMyTrips(auth.token);
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
+    const message = err.message || "เกิดข้อผิดพลาดขณะโหลดข้อมูลทริป";
+    error.value = message;
+    toast.error(message);
   } finally {
     loading.value = false;
   }
@@ -164,7 +172,9 @@ async function confirmDelete(id: number) {
   if (!ok) return;
 
   if (!auth.token) {
-    error.value = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    error.value = message;
+    toast.error(message);
     return;
   }
 
@@ -174,9 +184,13 @@ async function confirmDelete(id: number) {
   try {
     await apiDeleteTrip(id, auth.token);
     trips.value = trips.value.filter((t) => t.id !== id);
+
+    toast.success("ลบทริปสำเร็จแล้ว 🗑️");
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "ลบทริปไม่สำเร็จ";
+    const message = err.message || "ลบทริปไม่สำเร็จ";
+    error.value = message;
+    toast.error(message);
   } finally {
     deletingId.value = null;
   }

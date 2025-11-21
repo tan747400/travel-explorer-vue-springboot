@@ -30,7 +30,7 @@
 
         <button
           type="submit"
-          class="w-full bg-sky-600 hover:bg-sky-700 text-white py-2 rounded-lg text-sm font-medium"
+          class="w-full bg-sky-600 hover:bg-sky-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="loading"
         >
           {{ loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ" }}
@@ -42,12 +42,15 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { login } from "@/services/authService";
 import { useAuthStore } from "@/stores/authStore";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const email = ref("");
 const password = ref("");
@@ -71,19 +74,28 @@ async function handleSubmit() {
       password: password.value,
     })) as AuthResponse;
 
-    // ✅ อัปเดต Pinia store ให้ Navbar รู้ว่าเราล็อกอินแล้ว
+    // อัปเดต Pinia store ให้ Navbar รู้ว่าเราล็อกอินแล้ว
     authStore.login(res.token, {
       email: res.email,
       displayName: res.displayName,
     });
 
-    // กลับหน้า Home (หรือจะเปลี่ยนเป็น dashboard ก็ได้)
-    await router.push({ name: "home" });
+    toast.success("เข้าสู่ระบบสำเร็จ 🎉");
+
+    // ถ้ามี redirect (เช่น มาจากหน้า requiresAuth) ให้เด้งกลับไปหน้านั้น
+    const redirect = (route.query.redirect as string) || null;
+    if (redirect) {
+      await router.push(redirect);
+    } else {
+      await router.push({ name: "home" });
+    }
   } catch (err: any) {
     console.error(err);
-    error.value =
+    const message =
       err?.response?.data?.message ||
       "เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง";
+    error.value = message;
+    toast.error(message);
   } finally {
     loading.value = false;
   }

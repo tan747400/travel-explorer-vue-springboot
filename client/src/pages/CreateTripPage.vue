@@ -62,9 +62,7 @@
             class="w-full border rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
             placeholder="เล่าบรรยากาศ สถานที่ที่แนะนำ ไฮไลต์ของทริปนี้ ฯลฯ"
           />
-          <p class="text-xs text-gray-400 mt-1">
-            (ไม่เกิน 1000 ตัวอักษร)
-          </p>
+          <p class="text-xs text-gray-400 mt-1">(ไม่เกิน 1000 ตัวอักษร)</p>
         </div>
 
         <!-- Tags -->
@@ -146,6 +144,10 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { createTrip, type TripPayload } from "@/services/tripService";
 
+// Toast
+import { useToast } from "vue-toastification";
+const toast = useToast();
+
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -165,7 +167,7 @@ async function handleSubmit() {
   error.value = "";
 
   if (!auth.token) {
-    error.value = "กรุณาเข้าสู่ระบบก่อนสร้างทริปใหม่";
+    toast.error("กรุณาเข้าสู่ระบบก่อนสร้างทริปใหม่");
     return;
   }
 
@@ -174,11 +176,11 @@ async function handleSubmit() {
   const descriptionTrim = description.value.trim();
 
   if (!titleTrim) {
-    error.value = "กรุณากรอกชื่อทริป";
+    toast.warning("กรุณากรอกชื่อทริป");
     return;
   }
   if (!provinceTrim) {
-    error.value = "กรุณากรอกสถานที่";
+    toast.warning("กรุณากรอกสถานที่");
     return;
   }
 
@@ -204,11 +206,15 @@ async function handleSubmit() {
 
   try {
     await createTrip(auth.token, payload);
-    alert("บันทึกทริปเรียบร้อยแล้ว");
+
+    toast.success("บันทึกทริปเรียบร้อยแล้ว 🎉");
+
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "บันทึกทริปไม่สำเร็จ";
+    const message = err.message || "บันทึกทริปไม่สำเร็จ";
+    toast.error(message);
+    error.value = message;
   } finally {
     loading.value = false;
   }

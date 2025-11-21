@@ -187,7 +187,9 @@
             <span v-else>Load more</span>
           </button>
 
-          <p v-else class="text-sm text-gray-500">No more trips to load.</p>
+          <p v-else class="text-sm text-gray-500">
+            No more trips to load.
+          </p>
         </div>
       </div>
     </main>
@@ -204,6 +206,10 @@ import EmptyState from "../components/state/EmptyState.vue";
 import { getTrips } from "../services/tripService";
 import type { Trip } from "../types/trip";
 import { useDebouncedEffect } from "../composables/useDebouncedEffect";
+
+// ⭐️ Toast
+import { useToast } from "vue-toastification";
+const toast = useToast();
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -302,9 +308,17 @@ async function fetchTrips(reset: boolean) {
 
     buildFilterOptions(trips.value);
     status.value = "success";
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    if (reset) status.value = "error";
+    const message =
+      err?.message || "โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง";
+
+    if (reset) {
+      status.value = "error";
+    }
+
+    // แจ้งผู้ใช้ด้วย toast
+    toast.error(message);
   } finally {
     loadingMore.value = false;
   }
