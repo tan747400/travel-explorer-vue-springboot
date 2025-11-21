@@ -50,16 +50,36 @@
         </h2>
 
         <p class="text-sm text-sky-700 mb-1">
-          {{ trip.province || "ไม่ระบุจังหวัด" }}
+          {{ trip.province || "ไม่ระบุสถานที่" }}
         </p>
 
         <p class="text-xs text-gray-500 mb-2">
           สร้างโดย: {{ trip.authorName || "-" }}
         </p>
 
-        <p class="text-sm text-gray-700">
+        <p class="text-sm text-gray-700 line-clamp-2">
           {{ trip.description || "ไม่มีรายละเอียดเพิ่มเติม" }}
         </p>
+
+        <!-- ปุ่มจัดการ -->
+        <div class="mt-3 flex items-center justify-between gap-2 text-xs">
+          <button
+            type="button"
+            class="px-3 py-1 rounded-md border text-sky-700 hover:bg-sky-50"
+            @click="goToDetail(trip.id)"
+          >
+            ดูรายละเอียด
+          </button>
+
+          <button
+            type="button"
+            class="px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="deletingId === trip.id"
+            @click="confirmDelete(trip.id)"
+          >
+            {{ deletingId === trip.id ? "กำลังลบ..." : "ลบทริป" }}
+          </button>
+        </div>
       </article>
     </div>
   </div>
@@ -69,18 +89,8 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
-
-interface Trip {
-  id: number;
-  title: string;
-  description: string | null;
-  photos: string[] | null;
-  tags: string[] | null;
-  latitude: number | null;
-  longitude: number | null;
-  province: string | null;
-  authorName: string | null;
-}
+import type { Trip } from "@/types/trip";
+import { deleteTrip as apiDeleteTrip } from "@/services/tripService";
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -88,6 +98,7 @@ const router = useRouter();
 const trips = ref<Trip[]>([]);
 const loading = ref(false);
 const error = ref("");
+const deletingId = ref<number | null>(null);
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -121,6 +132,7 @@ async function fetchMyTrips() {
     const data = await res.json();
     trips.value = data;
   } catch (err: any) {
+    console.error(err);
     error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
   } finally {
     loading.value = false;
@@ -129,6 +141,34 @@ async function fetchMyTrips() {
 
 function goCreateTrip() {
   router.push({ name: "trip-create" });
+}
+
+function goToDetail(id: number) {
+  router.push({ name: "trip-detail", params: { id } });
+}
+
+async function confirmDelete(id: number) {
+  const ok = window.confirm("ต้องการลบทริปนี้จริง ๆ ใช่ไหม?");
+  if (!ok) return;
+
+  if (!auth.token) {
+    error.value = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    return;
+  }
+
+  deletingId.value = id;
+  error.value = "";
+
+  try {
+    await apiDeleteTrip(id, auth.token);
+    // ลบ card ออกจาก list บนหน้า
+    trips.value = trips.value.filter((t) => t.id !== id);
+  } catch (err: any) {
+    console.error(err);
+    error.value = err.message || "ลบทริปไม่สำเร็จ";
+  } finally {
+    deletingId.value = null;
+  }
 }
 
 onMounted(() => {

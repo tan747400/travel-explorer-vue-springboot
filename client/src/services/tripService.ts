@@ -47,3 +47,31 @@ export async function getTripById(id: number): Promise<Trip> {
   }
   return (await res.json()) as Trip;
 }
+
+/**
+ * ลบทริปตาม id (ต้องส่ง token มาด้วย)
+ */
+export async function deleteTrip(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/trips/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401) {
+    throw new Error("กรุณาเข้าสู่ระบบใหม่อีกครั้ง (401)");
+  }
+
+  if (res.status === 403) {
+    throw new Error("คุณไม่มีสิทธิ์ลบทริปนี้ (403)");
+  }
+
+  if (res.status === 404) {
+    throw new Error("ไม่พบทริปที่ต้องการลบ (404)");
+  }
+
+  if (!res.ok) {
+    throw new Error("ลบทริปไม่สำเร็จ");
+  }
+}
