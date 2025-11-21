@@ -5,10 +5,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -17,13 +19,26 @@ import java.util.function.Function;
 public class JwtService {
 
     private final JwtProperties jwtProperties;
-    private final Key signingKey;
+    private Key signingKey;
 
     public JwtService(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
-        this.signingKey = Keys.hmacShaKeyFor(
-                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8)
-        );
+    }
+
+    @PostConstruct
+    public void init() {
+        String secret = jwtProperties.getSecret();
+        System.out.println(">>> JWT_SECRET loaded = " + secret);
+
+        // ใช้ secret แบบ plain text ไม่ต้อง Base64
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+
+        // ให้ยาวพอสำหรับ HMAC-SHA (อย่างน้อย 32 bytes)
+        if (keyBytes.length < 32) {
+            keyBytes = Arrays.copyOf(keyBytes, 32);
+        }
+
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     /**
@@ -35,47 +50,36 @@ public class JwtService {
         long now = System.currentTimeMillis();
         long exp = now + jwtProperties.getExpiration();
 
-        // ถ้า claims เป็น null ให้ใช้ map ว่างแทน
         Map<String, Object> safeClaims = (claims != null) ? claims : Map.of();
 
         return Jwts.builder()
-                .setClaims(safeClaims)         // ต้องมาก่อน
-                .setSubject(subject)           // แล้วค่อย set subject
+                .setClaims(safeClaims)
+                .setSubject(subject)
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(exp))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /**
-     * helper เผื่ออยากสร้าง token แบบไม่มี claims เพิ่มเติม
-     */
+    /** helper แบบไม่ส่ง claims เพิ่ม */
     public String generateToken(String subject) {
         return generateToken(subject, Map.of());
     }
 
-    // ==========================================================
-    // ใช้ฝั่งอ่านข้อมูลจาก token
-    // ==========================================================
+    // =======================
+    // ฝั่งอ่านข้อมูลจาก token
+    // =======================
 
-    /**
-     * ดึง email (subject) ออกจาก token
-     */
+    /** ดึง email (subject) ออกจาก token */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    /**
-     * ใช้ฟังก์ชันแบบ generic เพื่อดึง claim ใด ๆ
-     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    /**
-     * คืน claims ทั้งหมดจาก JWT token
-     */
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(signingKey)

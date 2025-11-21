@@ -59,6 +59,10 @@ public class TripService {
      * ดึงรายการทริปของ user คนเดียว (ใช้ใน Dashboard: /api/trips/mine)
      */
     public List<TripResponse> getTripsOfUser(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User must not be null");
+        }
+
         List<Trip> trips = tripRepository.findByAuthorOrderByIdDesc(user);
 
         return trips.stream()
@@ -142,7 +146,11 @@ public class TripService {
                 .latitude(t.getLatitude())
                 .longitude(t.getLongitude())
                 .province(t.getProvince())
-                .authorName(t.getAuthor() != null ? t.getAuthor().getDisplayName() : "Unknown")
+                .authorName(
+                        t.getAuthor() != null
+                                ? t.getAuthor().getDisplayName()
+                                : "Unknown"
+                )
                 .build();
     }
 }

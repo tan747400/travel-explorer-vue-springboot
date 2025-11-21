@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import io.jsonwebtoken.JwtException;
+
 @RestController
 @RequestMapping("/api/trips")
 @RequiredArgsConstructor
@@ -42,7 +44,9 @@ public class TripController {
         return tripService.getTripById(id);
     }
 
-    // GET /api/trips/mine
+    // =======================
+    //   GET /api/trips/mine
+    // =======================
     @GetMapping("/mine")
     public ResponseEntity<List<TripResponse>> getMyTrips(
             @RequestHeader(name = "Authorization", required = false) String authHeader
@@ -51,8 +55,18 @@ public class TripController {
             return ResponseEntity.status(401).build();
         }
 
-        String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            // token เสีย / หมดอายุ / verify ไม่ผ่าน
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -73,8 +87,17 @@ public class TripController {
             return ResponseEntity.status(401).build();
         }
 
-        String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -96,8 +119,17 @@ public class TripController {
             return ResponseEntity.status(401).build();
         }
 
-        String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -107,9 +139,9 @@ public class TripController {
         try {
             TripResponse updated = tripService.updateTrip(id, req, user);
             return ResponseEntity.ok(updated);
-        } catch (ForbiddenException e) {               // จับ Forbidden ก่อน
+        } catch (ForbiddenException e) {
             return ResponseEntity.status(403).build();
-        } catch (RuntimeException e) {                  // แล้วค่อย RuntimeException
+        } catch (RuntimeException e) {
             if ("Trip not found".equals(e.getMessage())) {
                 return ResponseEntity.notFound().build();
             }
@@ -127,8 +159,17 @@ public class TripController {
             return ResponseEntity.status(401).build();
         }
 
-        String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).build();
+        }
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -138,9 +179,9 @@ public class TripController {
         try {
             tripService.deleteTrip(id, user);
             return ResponseEntity.noContent().build();
-        } catch (ForbiddenException e) {                // จับ Forbidden ก่อน
+        } catch (ForbiddenException e) {
             return ResponseEntity.status(403).build();
-        } catch (RuntimeException e) {                  // แล้วค่อย RuntimeException
+        } catch (RuntimeException e) {
             if ("Trip not found".equals(e.getMessage())) {
                 return ResponseEntity.notFound().build();
             }
