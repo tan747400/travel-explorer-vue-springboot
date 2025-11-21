@@ -1,255 +1,198 @@
 <template>
-    <div class="min-h-screen bg-slate-50">
-      <div class="max-w-xl mx-auto px-4 py-10">
-        <!-- Heading -->
-        <div class="mb-6 flex items-center justify-between">
-          <h1 class="text-2xl md:text-3xl font-bold">
-            แก้ไขทริป
-          </h1>
-  
+  <div class="min-h-screen bg-slate-50">
+    <div class="max-w-xl mx-auto px-4 py-10">
+      <!-- Header -->
+      <div class="mb-6 flex items-center justify-between">
+        <h1 class="text-2xl md:text-3xl font-bold">แก้ไขทริป</h1>
+
+        <button
+          type="button"
+          class="text-sm text-sky-600 hover:underline"
+          @click="goBack"
+        >
+          ← กลับไป Dashboard
+        </button>
+      </div>
+
+      <p class="text-gray-600 mb-6 text-sm">
+        ปรับแก้ข้อมูลสถานที่เที่ยวของคุณ แล้วกดบันทึกเพื่ออัปเดตทริป
+      </p>
+
+      <!-- Form -->
+      <form class="space-y-4" @submit.prevent="handleSubmit">
+        <!-- Title -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            ชื่อทริป / สถานที่<span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="title"
+            type="text"
+            class="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+
+        <!-- Province -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            สถานที่<span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="province"
+            type="text"
+            class="w-full border rounded-md px-3 py-2 text-sm"
+            required
+          />
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            รายละเอียดทริป
+          </label>
+          <textarea
+            v-model="description"
+            rows="4"
+            class="w-full border rounded-md px-3 py-2 text-sm resize-none"
+          />
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            แท็ก (คั่นด้วย ,)
+          </label>
+          <input
+            v-model="tagsInput"
+            type="text"
+            class="w-full border rounded-md px-3 py-2 text-sm"
+            placeholder="ธรรมชาติ, ภูเขา, หน้าหนาว"
+          />
+        </div>
+
+        <!-- Lat / Lng -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Latitude</label>
+            <input
+              v-model="latitude"
+              type="number"
+              step="0.000001"
+              class="w-full border rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Longitude</label>
+            <input
+              v-model="longitude"
+              type="number"
+              step="0.000001"
+              class="w-full border rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Error -->
+        <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
+
+        <!-- Buttons -->
+        <div class="flex items-center gap-3 pt-2">
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm hover:bg-sky-700"
+            :disabled="loading"
+          >
+            {{ loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง" }}
+          </button>
+
           <button
             type="button"
-            class="text-sm text-sky-600 hover:underline"
+            class="px-4 py-2 rounded-md border text-sm text-gray-600 hover:bg-gray-50"
             @click="goBack"
           >
-            ← กลับไป Dashboard
+            ยกเลิก
           </button>
         </div>
-  
-        <p class="text-gray-600 mb-6 text-sm">
-          ปรับแก้ข้อมูลสถานที่เที่ยวของคุณ แล้วกดบันทึกเพื่ออัปเดตทริป
-        </p>
-  
-        <!-- ฟอร์ม -->
-        <form class="space-y-4" @submit.prevent="handleSubmit">
-          <!-- Title -->
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              ชื่อทริป / สถานที่<span class="text-red-500">*</span>
-            </label>
-            <input
-              v-model="title"
-              type="text"
-              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              required
-            />
-          </div>
-  
-          <!-- สถานที่ -->
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              สถานที่<span class="text-red-500">*</span>
-            </label>
-            <input
-              v-model="province"
-              type="text"
-              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              required
-            />
-          </div>
-  
-          <!-- Description -->
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              รายละเอียดทริป
-            </label>
-            <textarea
-              v-model="description"
-              rows="4"
-              class="w-full border rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
-            />
-            <p class="text-xs text-gray-400 mt-1">
-              (ไม่เกิน 1000 ตัวอักษร)
-            </p>
-          </div>
-  
-          <!-- Tags -->
-          <div>
-            <label class="block text-sm font-medium mb-1">
-              แท็ก (คั่นด้วย ,)
-            </label>
-            <input
-              v-model="tagsInput"
-              type="text"
-              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              placeholder="เช่น ธรรมชาติ, ภูเขา, หน้าหนาว"
-            />
-          </div>
-  
-          <!-- Lat / Lng -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">
-                Latitude
-              </label>
-              <input
-                v-model="latitude"
-                type="number"
-                step="0.000001"
-                class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
-            </div>
-  
-            <div>
-              <label class="block text-sm font-medium mb-1">
-                Longitude
-              </label>
-              <input
-                v-model="longitude"
-                type="number"
-                step="0.000001"
-                class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              />
-            </div>
-          </div>
-  
-          <!-- Error -->
-          <p v-if="error" class="text-sm text-red-500">
-            {{ error }}
-          </p>
-  
-          <!-- Actions -->
-          <div class="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
-              :disabled="loading"
-            >
-              {{ loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง" }}
-            </button>
-  
-            <button
-              type="button"
-              class="px-4 py-2 rounded-md border text-sm text-gray-600 hover:bg-gray-50"
-              @click="goBack"
-            >
-              ยกเลิก
-            </button>
-          </div>
-        </form>
-      </div>
+      </form>
     </div>
-  </template>
-  
-  <script setup lang="ts">
-  import { ref, onMounted } from "vue";
-  import { useRoute, useRouter } from "vue-router";
-  import { useAuthStore } from "@/stores/authStore";
-  import { getTripById } from "@/services/tripService";
-  
-  const route = useRoute();
-  const router = useRouter();
-  const auth = useAuthStore();
-  
-  const title = ref("");
-  const province = ref("");
-  const description = ref("");
-  const tagsInput = ref("");
-  const latitude = ref("");
-  const longitude = ref("");
-  
-  const loading = ref(false);
-  const error = ref("");
-  
-  const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-  
-  const tripId = Number(route.params.id);
-  
-  onMounted(async () => {
-    try {
-      loading.value = true;
-      const trip = await getTripById(tripId);
-  
-      title.value = trip.title || "";
-      province.value = trip.province || "";
-      description.value = trip.description || "";
-      tagsInput.value = trip.tags ? trip.tags.join(", ") : "";
-      latitude.value = trip.latitude != null ? String(trip.latitude) : "";
-      longitude.value = trip.longitude != null ? String(trip.longitude) : "";
-    } catch (err: any) {
-      console.error(err);
-      error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
-    } finally {
-      loading.value = false;
-    }
-  });
-  
-  async function handleSubmit() {
-    error.value = "";
-  
-    if (!auth.token) {
-      error.value = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
-      return;
-    }
-  
-    const titleTrim = title.value.trim();
-    const provinceTrim = province.value.trim();
-    const descriptionTrim = description.value.trim();
-  
-    if (!titleTrim) {
-      error.value = "กรุณากรอกชื่อทริป";
-      return;
-    }
-    if (!provinceTrim) {
-      error.value = "กรุณากรอกสถานที่";
-      return;
-    }
-  
-    const tags =
-      tagsInput.value
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-  
-    const latNum = latitude.value ? Number(latitude.value) : null;
-    const lngNum = longitude.value ? Number(longitude.value) : null;
-  
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/authStore";
+import { getTripById, updateTrip } from "@/services/tripService";
+
+const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+const title = ref("");
+const province = ref("");
+const description = ref("");
+const tagsInput = ref("");
+const latitude = ref("");
+const longitude = ref("");
+
+const loading = ref(false);
+const error = ref("");
+
+const tripId = Number(route.params.id);
+
+onMounted(async () => {
+  try {
     loading.value = true;
-  
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/trips/${tripId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify({
-          title: titleTrim,
-          province: provinceTrim,
-          description: descriptionTrim || null,
-          tags: tags.length > 0 ? tags : null,
-          latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
-          longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
-        }),
-      });
-  
-      if (res.status === 401) {
-        throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-      }
-      if (res.status === 403) {
-        throw new Error("คุณไม่มีสิทธิ์แก้ไขทริปนี้");
-      }
-      if (!res.ok) {
-        let msg = "บันทึกการแก้ไขไม่สำเร็จ";
-        try {
-          const data = await res.json();
-          if (data?.message) msg = data.message;
-        } catch {}
-        throw new Error(msg);
-      }
-  
-      alert("อัปเดตทริปเรียบร้อยแล้ว");
-      router.push({ name: "dashboard" });
-    } catch (err: any) {
-      console.error(err);
-      error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
-    } finally {
-      loading.value = false;
-    }
+    const trip = await getTripById(tripId);
+
+    title.value = trip.title || "";
+    province.value = trip.province || "";
+    description.value = trip.description || "";
+    tagsInput.value = trip.tags ? trip.tags.join(", ") : "";
+    latitude.value = trip.latitude != null ? String(trip.latitude) : "";
+    longitude.value = trip.longitude != null ? String(trip.longitude) : "";
+  } catch (err: any) {
+    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+  } finally {
+    loading.value = false;
   }
-  
-  function goBack() {
+});
+
+async function handleSubmit() {
+  if (!auth.token) {
+    error.value = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
+    return;
+  }
+
+  const tags = tagsInput.value
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+
+  try {
+    loading.value = true;
+
+    await updateTrip(tripId, auth.token, {
+      title: title.value.trim(),
+      province: province.value.trim(),
+      description: description.value.trim() || null,
+      tags: tags.length > 0 ? tags : null,
+      latitude: latitude.value ? Number(latitude.value) : null,
+      longitude: longitude.value ? Number(longitude.value) : null,
+    });
+
+    alert("แก้ไขทริปสำเร็จ");
     router.push({ name: "dashboard" });
+  } catch (err: any) {
+    error.value = err.message || "เกิดข้อผิดพลาด";
+  } finally {
+    loading.value = false;
   }
-  </script>  
+}
+
+function goBack() {
+  router.push({ name: "dashboard" });
+}
+</script>
