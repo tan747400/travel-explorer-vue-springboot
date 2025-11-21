@@ -71,14 +71,24 @@
             ดูรายละเอียด
           </button>
 
-          <button
-            type="button"
-            class="px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-            :disabled="deletingId === trip.id"
-            @click="confirmDelete(trip.id)"
-          >
-            {{ deletingId === trip.id ? "กำลังลบ..." : "ลบทริป" }}
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="px-3 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+              @click="goToEdit(trip.id)"
+            >
+              แก้ไข
+            </button>
+
+            <button
+              type="button"
+              class="px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="deletingId === trip.id"
+              @click="confirmDelete(trip.id)"
+            >
+              {{ deletingId === trip.id ? "กำลังลบ..." : "ลบทริป" }}
+            </button>
+          </div>
         </div>
       </article>
     </div>
@@ -145,6 +155,10 @@ function goCreateTrip() {
 
 function goToDetail(id: number) {
   router.push({ name: "trip-detail", params: { id } });
+}
+
+function goToEdit(id: number) {
+  router.push({ name: "trip-edit", params: { id } });
 }
 
 async function confirmDelete(id: number) {

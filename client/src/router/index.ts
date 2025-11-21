@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage.vue";
 import RegisterPage from "@/pages/RegisterPage.vue";
 import DashboardPage from "@/pages/DashboardPage.vue";
 import CreateTripPage from "@/pages/CreateTripPage.vue";
+import EditTripPage from "@/pages/EditTripPage.vue";
 
 // Pinia Store
 import { useAuthStore } from "@/stores/authStore";
@@ -25,11 +26,19 @@ const routes = [
     meta: { requiresAuth: true },
   },
 
-  // ⭐ Route ใหม่สำหรับ "สร้างทริป"
+  // สร้างทริปใหม่
   {
     path: "/dashboard/create",
     name: "trip-create",
     component: CreateTripPage,
+    meta: { requiresAuth: true },
+  },
+
+  // แก้ไขทริป (ต้องล็อกอิน)
+  {
+    path: "/trips/:id/edit",
+    name: "trip-edit",
+    component: EditTripPage,
     meta: { requiresAuth: true },
   },
 ];
@@ -47,7 +56,7 @@ router.beforeEach((to, from, next) => {
 
   const isLoggedIn = !!authStore.token;
 
-  // ต้องล็อกอินก่อนเข้า (Dashboard + Create)
+  // ต้องล็อกอินก่อนเข้า (Dashboard + Create + Edit)
   if (to.meta.requiresAuth && !isLoggedIn) {
     return next({
       name: "login",
