@@ -114,7 +114,10 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import type { Trip } from "@/types/trip";
-import { deleteTrip as apiDeleteTrip } from "@/services/tripService";
+import {
+  deleteTrip as apiDeleteTrip,
+  getMyTrips,
+} from "@/services/tripService";
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -123,9 +126,6 @@ const trips = ref<Trip[]>([]);
 const loading = ref(false);
 const error = ref("");
 const deletingId = ref<number | null>(null);
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 async function fetchMyTrips() {
   loading.value = true;
@@ -138,23 +138,7 @@ async function fetchMyTrips() {
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/trips/mine`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${auth.token}`,
-      },
-    });
-
-    if (res.status === 401) {
-      throw new Error("กรุณาเข้าสู่ระบบก่อนเข้าหน้านี้");
-    }
-
-    if (!res.ok) {
-      throw new Error("โหลดทริปไม่สำเร็จ");
-    }
-
-    const data = await res.json();
-    trips.value = data;
+    trips.value = await getMyTrips(auth.token);
   } catch (err: any) {
     console.error(err);
     error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
@@ -189,7 +173,6 @@ async function confirmDelete(id: number) {
 
   try {
     await apiDeleteTrip(id, auth.token);
-    // ลบ card ออกจาก list บนหน้า
     trips.value = trips.value.filter((t) => t.id !== id);
   } catch (err: any) {
     console.error(err);

@@ -39,7 +39,27 @@ export async function getTripById(id: number): Promise<Trip> {
   return (await res.json()) as Trip;
 }
 
-/** สร้างทริปใหม่ (ต้องมี token) */
+/** ดึงทริปของ user ปัจจุบัน (ใช้ใน Dashboard) */
+export async function getMyTrips(token: string): Promise<Trip[]> {
+  const res = await fetch(`${API_BASE}/trips/mine`, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401) {
+    throw new Error("กรุณาเข้าสู่ระบบก่อนเข้าหน้านี้");
+  }
+
+  if (!res.ok) {
+    throw new Error(`โหลดทริปไม่สำเร็จ (HTTP ${res.status})`);
+  }
+
+  return (await res.json()) as Trip[];
+}
+
+/** payload ที่ใช้ทั้ง create/update */
 export interface TripPayload {
   title: string;
   province: string;
@@ -49,6 +69,7 @@ export interface TripPayload {
   longitude: number | null;
 }
 
+/** สร้างทริปใหม่ */
 export async function createTrip(
   token: string,
   payload: TripPayload
@@ -66,28 +87,25 @@ export async function createTrip(
     throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง (401)");
   }
 
-  // พยายามอ่าน response เพื่อช่วย debug
   const text = await res.text();
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    // ไม่ใช่ JSON ก็ไม่เป็นไร
+    // response ไม่ใช่ JSON ก็ข้ามไป
   }
 
   if (!res.ok) {
-    // ถ้า backend ส่ง message มาก็เอามาใช้
     const backendMsg = data?.message || data?.error;
     const msg =
-      backendMsg ||
-      `บันทึกทริปไม่สำเร็จ (HTTP ${res.status})`; // จะเห็น status ชัด ๆ
+      backendMsg || `บันทึกทริปไม่สำเร็จ (HTTP ${res.status})`;
     throw new Error(msg);
   }
 
   return data as Trip;
 }
 
-/** อัปเดตทริป (PUT /api/trips/{id}) */
+/** อัปเดตทริป */
 export async function updateTrip(
   id: number,
   token: string,
@@ -118,15 +136,14 @@ export async function updateTrip(
   if (!res.ok) {
     const backendMsg = data?.message || data?.error;
     const msg =
-      backendMsg ||
-      `บันทึกการแก้ไขไม่สำเร็จ (HTTP ${res.status})`;
+      backendMsg || `บันทึกการแก้ไขไม่สำเร็จ (HTTP ${res.status})`;
     throw new Error(msg);
   }
 
   return data as Trip;
 }
 
-/** ลบทริปตาม id (ต้องส่ง token มาด้วย) */
+/** ลบทริป */
 export async function deleteTrip(id: number, token: string): Promise<void> {
   const res = await fetch(`${API_BASE}/trips/${id}`, {
     method: "DELETE",

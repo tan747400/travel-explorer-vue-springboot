@@ -144,7 +144,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
-import { createTrip } from "@/services/tripService";
+import { createTrip, type TripPayload } from "@/services/tripService";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -182,26 +182,28 @@ async function handleSubmit() {
     return;
   }
 
-  const tags = tagsInput.value
-    .split(",")
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+  const tags =
+    tagsInput.value
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0) || [];
 
   const latNum = latitude.value ? Number(latitude.value) : null;
   const lngNum = longitude.value ? Number(longitude.value) : null;
 
+  const payload: TripPayload = {
+    title: titleTrim,
+    province: provinceTrim,
+    description: descriptionTrim || null,
+    tags: tags.length > 0 ? tags : null,
+    latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
+    longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
+  };
+
   loading.value = true;
 
   try {
-    await createTrip(auth.token, {
-      title: titleTrim,
-      province: provinceTrim,
-      description: descriptionTrim || null,
-      tags: tags.length > 0 ? tags : null,
-      latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
-      longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
-    });
-
+    await createTrip(auth.token, payload);
     alert("บันทึกทริปเรียบร้อยแล้ว");
     router.push({ name: "dashboard" });
   } catch (err: any) {
