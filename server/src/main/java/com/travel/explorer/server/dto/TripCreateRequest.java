@@ -6,6 +6,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * ใช้รับข้อมูลจากฝั่ง Frontend เวลา "สร้างทริปใหม่"
+ */
 @Data
 public class TripCreateRequest {
 
@@ -20,8 +23,6 @@ public class TripCreateRequest {
     @Size(max = 1000, message = "description ต้องไม่เกิน 1000 ตัวอักษร")
     private String description;
 
-    // ---------- fields ใหม่ ----------
-
     /**
      * tags เช่น ["ธรรมชาติ","ภูเขา","หน้าหนาว"]
      * ไม่บังคับส่งมา
@@ -29,8 +30,7 @@ public class TripCreateRequest {
     private List<String> tags;
 
     /**
-     * พิกัดละติจูด / ลองจิจูด
-     * ไม่บังคับ ถ้าไม่รู้ส่ง null ได้
+     * พิกัดละติจูด / ลองจิจูด (optional)
      */
     private Double latitude;
     private Double longitude;
