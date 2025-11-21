@@ -1,4 +1,5 @@
 <template>
+  <!-- มีทริป -->
   <div class="max-w-6xl mx-auto px-4 py-10" v-if="trip">
     <!-- Header -->
     <header
@@ -118,12 +119,19 @@
     </section>
   </div>
 
-  <!-- Loading / Error -->
+  <!-- Loading / Error / Not found -->
   <div class="max-w-6xl mx-auto px-4 py-10" v-else>
-    <p v-if="loading" class="text-gray-500">กำลังโหลดข้อมูลทริป...</p>
-    <p v-else-if="error" class="text-red-500">
-      {{ error }}
-    </p>
+    <Loading v-if="loading" />
+
+    <ErrorState
+      v-else-if="error"
+      :message="error"
+    />
+
+    <EmptyState
+      v-else
+      message="ไม่พบทริปที่คุณต้องการแสดง"
+    />
   </div>
 </template>
 
@@ -132,6 +140,11 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import type { Trip } from "@/types/trip";
 import { getTripById } from "@/services/tripService";
+
+// state components
+import Loading from "@/components/state/Loading.vue";
+import ErrorState from "@/components/state/ErrorState.vue";
+import EmptyState from "@/components/state/EmptyState.vue";
 
 // Toast
 import { useToast } from "vue-toastification";
@@ -174,10 +187,15 @@ function selectPhoto(idx: number) {
 
 async function loadTrip() {
   loading.value = true;
+  error.value = "";
   try {
     const id = Number(route.params.id);
     trip.value = await getTripById(id);
     mainImageIndex.value = 0;
+
+    if (!trip.value) {
+      error.value = "";
+    }
   } catch (err: any) {
     console.error(err);
     const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";

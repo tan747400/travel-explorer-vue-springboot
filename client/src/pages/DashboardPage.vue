@@ -21,22 +21,19 @@
     </p>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-gray-500">
-      กำลังโหลดข้อมูลทริปของคุณ...
-    </div>
+    <Loading v-if="loading" />
 
     <!-- Error -->
-    <div v-else-if="error" class="text-red-500">
-      {{ error }}
-    </div>
+    <ErrorState
+      v-else-if="error"
+      :message="error"
+    />
 
     <!-- ไม่มีทริป -->
-    <div
+    <EmptyState
       v-else-if="trips.length === 0"
-      class="border border-dashed border-gray-300 rounded-2xl p-6 text-center text-gray-500"
-    >
-      ยังไม่มีทริปที่คุณสร้างเลย ลองเริ่มสร้างทริปใหม่ดูไหม 🙂
-    </div>
+      message="ยังไม่มีทริปที่คุณสร้างเลย ลองเริ่มสร้างทริปใหม่ดูไหม 🙂"
+    />
 
     <!-- มีทริปแล้ว -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -118,6 +115,11 @@ import {
   deleteTrip as apiDeleteTrip,
   getMyTrips,
 } from "@/services/tripService";
+
+// state components
+import Loading from "@/components/state/Loading.vue";
+import ErrorState from "@/components/state/ErrorState.vue";
+import EmptyState from "@/components/state/EmptyState.vue";
 
 // Toast
 import { useToast } from "vue-toastification";

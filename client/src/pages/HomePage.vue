@@ -33,7 +33,7 @@
                 border border-slate-300 rounded-lg px-3 py-1.5 pr-10
                 bg-white text-xs sm:text-sm shadow-sm
                 focus:outline-none focus:ring-2 focus:ring-sky-400
-                appearance-none
+                appearance-none cursor-pointer
               "
             >
               <option value="">ทั้งหมด</option>
@@ -155,9 +155,15 @@
 
       <!-- States -->
       <Loading v-if="status === 'loading'" />
-      <ErrorState v-else-if="status === 'error'" />
+
+      <ErrorState
+        v-else-if="status === 'error'"
+        :message="errorMessage"
+      />
+
       <EmptyState
         v-else-if="status === 'success' && filteredTrips.length === 0"
+        message="ยังไม่มีทริปที่ตรงกับเงื่อนไขการค้นหา ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ"
       />
 
       <!-- Trip List -->
@@ -206,9 +212,8 @@ import EmptyState from "../components/state/EmptyState.vue";
 import { getTrips } from "../services/tripService";
 import type { Trip } from "../types/trip";
 import { useDebouncedEffect } from "../composables/useDebouncedEffect";
-
-// ⭐️ Toast
 import { useToast } from "vue-toastification";
+
 const toast = useToast();
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -216,6 +221,9 @@ type Status = "idle" | "loading" | "success" | "error";
 const trips = ref<Trip[]>([]);
 const status = ref<Status>("idle");
 const keyword = ref("");
+
+// ใช้โชว์ใน ErrorState
+const errorMessage = ref("");
 
 // pagination
 const page = ref(0);
@@ -295,6 +303,7 @@ async function fetchTrips(reset: boolean) {
       trips.value = [];
       page.value = 0;
       lastPage.value = false;
+      errorMessage.value = "";
     } else {
       loadingMore.value = true;
     }
@@ -313,11 +322,12 @@ async function fetchTrips(reset: boolean) {
     const message =
       err?.message || "โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง";
 
+    errorMessage.value = message;
+
     if (reset) {
       status.value = "error";
     }
 
-    // แจ้งผู้ใช้ด้วย toast
     toast.error(message);
   } finally {
     loadingMore.value = false;
