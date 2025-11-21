@@ -144,24 +144,22 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
+import { createTrip } from "@/services/tripService";
 
 const router = useRouter();
 const auth = useAuthStore();
 
 const title = ref("");
-const province = ref(""); // ใช้แทน field เดิม แต่ label UI เป็น “สถานที่”
+const province = ref("");
 const description = ref("");
 
 // new fields
-const tagsInput = ref(""); 
+const tagsInput = ref("");
 const latitude = ref("");
 const longitude = ref("");
 
 const loading = ref(false);
 const error = ref("");
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 async function handleSubmit() {
   error.value = "";
@@ -180,57 +178,35 @@ async function handleSubmit() {
     return;
   }
   if (!provinceTrim) {
-    error.value = "กรุณากรอกสถานที่";   // ปรับให้ตรงกับ UI
+    error.value = "กรุณากรอกสถานที่";
     return;
   }
 
-  // Tags → array
   const tags = tagsInput.value
     .split(",")
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
 
-  // lat/lng → number|null
   const latNum = latitude.value ? Number(latitude.value) : null;
   const lngNum = longitude.value ? Number(longitude.value) : null;
 
   loading.value = true;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/trips`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${auth.token}`,
-      },
-      body: JSON.stringify({
-        title: titleTrim,
-        province: provinceTrim, // backend ยังต้องใช้ชื่อ field นี้
-        description: descriptionTrim || null,
-        tags: tags.length > 0 ? tags : null,
-        latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
-        longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
-      }),
+    await createTrip(auth.token, {
+      title: titleTrim,
+      province: provinceTrim,
+      description: descriptionTrim || null,
+      tags: tags.length > 0 ? tags : null,
+      latitude: latNum !== null && !Number.isNaN(latNum) ? latNum : null,
+      longitude: lngNum !== null && !Number.isNaN(lngNum) ? lngNum : null,
     });
-
-    if (res.status === 401) {
-      throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-    }
-
-    if (!res.ok) {
-      let msg = "บันทึกทริปไม่สำเร็จ";
-      try {
-        const data = await res.json();
-        if (data?.message) msg = data.message;
-      } catch {}
-      throw new Error(msg);
-    }
 
     alert("บันทึกทริปเรียบร้อยแล้ว");
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "เกิดข้อผิดพลาดบางอย่าง";
+    error.value = err.message || "บันทึกทริปไม่สำเร็จ";
   } finally {
     loading.value = false;
   }

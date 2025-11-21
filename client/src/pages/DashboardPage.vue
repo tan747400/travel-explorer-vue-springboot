@@ -61,6 +61,20 @@
           {{ trip.description || "ไม่มีรายละเอียดเพิ่มเติม" }}
         </p>
 
+        <!-- Tags -->
+        <div
+          v-if="trip.tags && trip.tags.length > 0"
+          class="mt-2 flex flex-wrap gap-2"
+        >
+          <span
+            v-for="tag in trip.tags"
+            :key="tag"
+            class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700"
+          >
+            #{{ tag }}
+          </span>
+        </div>
+
         <!-- ปุ่มจัดการ -->
         <div class="mt-3 flex items-center justify-between gap-2 text-xs">
           <button

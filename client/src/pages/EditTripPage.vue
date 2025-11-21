@@ -28,7 +28,7 @@
           <input
             v-model="title"
             type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm"
+            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
             required
           />
         </div>
@@ -41,7 +41,7 @@
           <input
             v-model="province"
             type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm"
+            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
             required
           />
         </div>
@@ -54,8 +54,11 @@
           <textarea
             v-model="description"
             rows="4"
-            class="w-full border rounded-md px-3 py-2 text-sm resize-none"
+            class="w-full border rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
           />
+          <p class="text-xs text-gray-400 mt-1">
+            (ไม่เกิน 1000 ตัวอักษร)
+          </p>
         </div>
 
         <!-- Tags -->
@@ -66,7 +69,7 @@
           <input
             v-model="tagsInput"
             type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm"
+            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
             placeholder="ธรรมชาติ, ภูเขา, หน้าหนาว"
           />
         </div>
@@ -79,7 +82,7 @@
               v-model="latitude"
               type="number"
               step="0.000001"
-              class="w-full border rounded-md px-3 py-2 text-sm"
+              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
 
@@ -89,9 +92,25 @@
               v-model="longitude"
               type="number"
               step="0.000001"
-              class="w-full border rounded-md px-3 py-2 text-sm"
+              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
+        </div>
+
+        <!-- Map preview -->
+        <div
+          v-if="hasLocation"
+          class="mt-4 rounded-xl overflow-hidden border bg-white"
+        >
+          <iframe
+            :src="mapEmbedUrl"
+            width="100%"
+            height="220"
+            style="border:0;"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
         </div>
 
         <!-- Error -->
@@ -101,7 +120,7 @@
         <div class="flex items-center gap-3 pt-2">
           <button
             type="submit"
-            class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm hover:bg-sky-700"
+            class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="loading"
           >
             {{ loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง" }}
@@ -121,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { getTripById, updateTrip } from "@/services/tripService";
@@ -142,6 +161,22 @@ const error = ref("");
 
 const tripId = Number(route.params.id);
 
+// มีพิกัดไหม
+const hasLocation = computed(() => {
+  if (!latitude.value || !longitude.value) return false;
+  const lat = Number(latitude.value);
+  const lng = Number(longitude.value);
+  return !Number.isNaN(lat) && !Number.isNaN(lng);
+});
+
+// URL สำหรับ Google Maps Embed
+const mapEmbedUrl = computed(() => {
+  if (!hasLocation.value) return "";
+  const lat = Number(latitude.value);
+  const lng = Number(longitude.value);
+  return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
+});
+
 onMounted(async () => {
   try {
     loading.value = true;
@@ -154,6 +189,7 @@ onMounted(async () => {
     latitude.value = trip.latitude != null ? String(trip.latitude) : "";
     longitude.value = trip.longitude != null ? String(trip.longitude) : "";
   } catch (err: any) {
+    console.error(err);
     error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
   } finally {
     loading.value = false;
@@ -161,8 +197,23 @@ onMounted(async () => {
 });
 
 async function handleSubmit() {
+  error.value = "";
+
   if (!auth.token) {
     error.value = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
+    return;
+  }
+
+  const titleTrim = title.value.trim();
+  const provinceTrim = province.value.trim();
+  const descriptionTrim = description.value.trim();
+
+  if (!titleTrim) {
+    error.value = "กรุณากรอกชื่อทริป";
+    return;
+  }
+  if (!provinceTrim) {
+    error.value = "กรุณากรอกสถานที่";
     return;
   }
 
@@ -175,9 +226,9 @@ async function handleSubmit() {
     loading.value = true;
 
     await updateTrip(tripId, auth.token, {
-      title: title.value.trim(),
-      province: province.value.trim(),
-      description: description.value.trim() || null,
+      title: titleTrim,
+      province: provinceTrim,
+      description: descriptionTrim || null,
       tags: tags.length > 0 ? tags : null,
       latitude: latitude.value ? Number(latitude.value) : null,
       longitude: longitude.value ? Number(longitude.value) : null,
@@ -186,6 +237,7 @@ async function handleSubmit() {
     alert("แก้ไขทริปสำเร็จ");
     router.push({ name: "dashboard" });
   } catch (err: any) {
+    console.error(err);
     error.value = err.message || "เกิดข้อผิดพลาด";
   } finally {
     loading.value = false;
