@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-6xl mx-auto px-4 py-10" v-if="trip">
-    <!-- ชื่อ + สถานที่ -->
+    <!-- Header -->
     <header
       class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-2"
     >
@@ -8,9 +8,11 @@
         <h1 class="text-3xl md:text-4xl font-bold mb-1">
           {{ trip.title }}
         </h1>
+
         <p class="text-sky-700 text-sm">
           {{ trip.province || "ไม่ระบุสถานที่" }}
         </p>
+
         <p class="text-xs text-gray-500 mt-1">
           สร้างโดย: {{ trip.authorName || "-" }}
         </p>
@@ -18,9 +20,9 @@
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- รูปหลัก + แกลเลอรี -->
+      <!-- Photos -->
       <section class="lg:col-span-2 space-y-4">
-        <!-- รูปหลัก -->
+        <!-- Main Image -->
         <div
           v-if="trip.photos && trip.photos.length > 0"
           class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
@@ -38,7 +40,7 @@
           ยังไม่มีรูปภาพสำหรับทริปนี้
         </div>
 
-        <!-- รูปย่อยแถวล่าง ถ้ามีมากกว่า 1 รูป -->
+        <!-- Thumbnail Images -->
         <div
           v-if="trip.photos && trip.photos.length > 1"
           class="grid grid-cols-3 gap-2"
@@ -55,8 +57,6 @@
               class="h-24 w-full rounded-lg object-cover transition-opacity"
               :class="idx === mainImageIndex ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'"
             />
-
-            <!-- เส้นขอบบอกว่ารูปไหนถูกเลือก -->
             <span
               v-if="idx === mainImageIndex"
               class="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-sky-500"
@@ -65,14 +65,11 @@
         </div>
       </section>
 
-      <!-- แผนที่ -->
+      <!-- Map Section -->
       <aside class="space-y-3">
         <h2 class="font-semibold mb-1">แผนที่</h2>
 
-        <div
-          v-if="hasLocation"
-          class="rounded-xl overflow-hidden border bg-white"
-        >
+        <div v-if="hasLocation" class="rounded-xl overflow-hidden border bg-white">
           <iframe
             :src="mapEmbedUrl"
             width="100%"
@@ -80,14 +77,12 @@
             style="border:0;"
             allowfullscreen
             loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
           ></iframe>
 
           <div class="p-3 border-t text-right">
             <a
               :href="mapExternalUrl"
               target="_blank"
-              rel="noreferrer"
               class="text-xs text-sky-600 hover:underline"
             >
               View on Google Maps
@@ -101,14 +96,13 @@
       </aside>
     </div>
 
-    <!-- รายละเอียด + TAGS -->
+    <!-- Description & Tags -->
     <section class="mt-8 space-y-3">
       <h2 class="font-semibold text-lg">รายละเอียดสถานที่</h2>
       <p class="text-sm text-gray-700">
         {{ trip.description || "ยังไม่มีรายละเอียดของทริปนี้" }}
       </p>
 
-      <!-- แสดง tags เป็นป้าย -->
       <div
         v-if="trip.tags && trip.tags.length > 0"
         class="mt-4 flex flex-wrap gap-2"
@@ -145,40 +139,30 @@ const trip = ref<Trip | null>(null);
 const loading = ref(false);
 const error = ref("");
 
-// index ของรูปที่เป็น "รูปหลัก"
 const mainImageIndex = ref(0);
 
-// รูปหลักที่ใช้แสดงด้านบน
 const currentMainImage = computed(() => {
-  if (!trip.value || !trip.value.photos || trip.value.photos.length === 0) {
-    return "";
-  }
+  if (!trip.value?.photos?.length) return "";
   return trip.value.photos[mainImageIndex.value] ?? trip.value.photos[0];
 });
 
-// มีพิกัดไหม
-const hasLocation = computed(
-  () => trip.value?.latitude != null && trip.value?.longitude != null
+const hasLocation = computed(() =>
+  trip.value?.latitude != null && trip.value?.longitude != null
 );
 
-// สร้าง URL สำหรับ iframe (ไม่ต้องใช้ API key)
 const mapEmbedUrl = computed(() => {
   if (!hasLocation.value || !trip.value) return "";
-  const lat = trip.value.latitude;
-  const lng = trip.value.longitude;
-  return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
+  const { latitude, longitude } = trip.value;
+  return `https://www.google.com/maps?q=${latitude},${longitude}&z=14&output=embed`;
 });
 
-// ลิงก์ไปหน้า Google Maps จริง
 const mapExternalUrl = computed(() => {
   if (!hasLocation.value || !trip.value) return "#";
-  const lat = trip.value.latitude;
-  const lng = trip.value.longitude;
-  return `https://www.google.com/maps?q=${lat},${lng}`;
+  const { latitude, longitude } = trip.value;
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 });
 
 function selectPhoto(idx: number) {
-  // กัน index เกิน
   if (!trip.value?.photos) return;
   if (idx < 0 || idx >= trip.value.photos.length) return;
   mainImageIndex.value = idx;
@@ -186,13 +170,10 @@ function selectPhoto(idx: number) {
 
 async function loadTrip() {
   loading.value = true;
-  error.value = "";
-
   try {
     const id = Number(route.params.id);
-    const data = await getTripById(id);
-    trip.value = data;
-    mainImageIndex.value = 0; // reset ทุกครั้งที่เปลี่ยนทริป
+    trip.value = await getTripById(id);
+    mainImageIndex.value = 0;
   } catch (err: any) {
     console.error(err);
     error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
@@ -201,7 +182,5 @@ async function loadTrip() {
   }
 }
 
-onMounted(() => {
-  loadTrip();
-});
+onMounted(loadTrip);
 </script>
