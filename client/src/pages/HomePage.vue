@@ -179,10 +179,10 @@
           @addKeyword="handleAddKeyword"
         />
 
-        <!-- Load More -->
+        <!-- Load More: แสดงเฉพาะเมื่อมี >= page size และยังไม่ใช่ lastPage -->
         <div class="flex justify-center mt-6">
           <button
-            v-if="!lastPage"
+            v-if="filteredTrips.length >= size && !lastPage"
             type="button"
             class="px-5 py-2.5 rounded-full border border-sky-500 text-sky-600 text-sm font-medium
                    bg-white shadow-sm hover:bg-sky-50 disabled:opacity-60 disabled:cursor-not-allowed transition"
@@ -192,10 +192,6 @@
             <span v-if="loadingMore">Loading...</span>
             <span v-else>Load more</span>
           </button>
-
-          <p v-else class="text-sm text-gray-500">
-            No more trips to load.
-          </p>
         </div>
       </div>
     </main>
