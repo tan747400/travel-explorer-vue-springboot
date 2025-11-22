@@ -20,7 +20,9 @@ export async function getTrips(
   const res = await fetch(`${API_BASE}/trips?${params.toString()}`);
 
   if (!res.ok) {
-    throw new Error(`โหลดทริปไม่สำเร็จ (${res.status})`);
+    const err: any = new Error(`โหลดทริปไม่สำเร็จ (${res.status})`);
+    err.status = res.status;
+    throw err;
   }
 
   return (await res.json()) as PagedTrips;
@@ -29,7 +31,13 @@ export async function getTrips(
 /** ดึงทริปเดี่ยว */
 export async function getTripById(id: number): Promise<Trip> {
   const res = await fetch(`${API_BASE}/trips/${id}`);
-  if (!res.ok) throw new Error(`ไม่พบข้อมูลทริป (${res.status})`);
+
+  if (!res.ok) {
+    const err: any = new Error(`ไม่พบข้อมูลทริป (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+
   return (await res.json()) as Trip;
 }
 
@@ -41,8 +49,11 @@ export async function getMyTrips(token: string): Promise<Trip[]> {
     },
   });
 
-  if (res.status === 401) throw new Error("กรุณาเข้าสู่ระบบใหม่");
-  if (!res.ok) throw new Error("โหลดทริปไม่สำเร็จ");
+  const err: any = new Error("โหลดทริปไม่สำเร็จ");
+  err.status = res.status;
+
+  if (res.status === 401) throw err;
+  if (!res.ok) throw err;
 
   return (await res.json()) as Trip[];
 }
@@ -72,14 +83,15 @@ export async function createTrip(
   });
 
   const text = await res.text();
-  let data: any = null;
+  let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {}
 
   if (!res.ok) {
-    const msg = data?.message || data?.error || "บันทึกทริปไม่สำเร็จ";
-    throw new Error(msg);
+    const err: any = new Error(data?.message || "บันทึกทริปไม่สำเร็จ");
+    err.status = res.status;
+    throw err;
   }
 
   return data as Trip;
@@ -101,14 +113,15 @@ export async function updateTrip(
   });
 
   const text = await res.text();
-  let data: any = null;
+  let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {}
 
   if (!res.ok) {
-    const msg = data?.message || data?.error || "แก้ไขทริปไม่สำเร็จ";
-    throw new Error(msg);
+    const err: any = new Error(data?.message || "แก้ไขทริปไม่สำเร็จ");
+    err.status = res.status;
+    throw err;
   }
 
   return data as Trip;
@@ -121,9 +134,12 @@ export async function deleteTrip(id: number, token: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (res.status === 401) throw new Error("กรุณาเข้าสู่ระบบใหม่");
-  if (res.status === 403) throw new Error("คุณไม่มีสิทธิ์ลบทริปนี้");
-  if (res.status === 404) throw new Error("ไม่พบทริป");
+  const err: any = new Error("ลบทริปไม่สำเร็จ");
+  err.status = res.status;
 
-  if (!res.ok) throw new Error("ลบทริปไม่สำเร็จ");
+  if (res.status === 401) throw err;
+  if (res.status === 403) throw err;
+  if (res.status === 404) throw err;
+
+  if (!res.ok) throw err;
 }

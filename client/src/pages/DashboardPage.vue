@@ -1,10 +1,8 @@
 <template>
   <div class="max-w-6xl mx-auto px-4 py-10">
-    <!-- Header + ปุ่มเพิ่มทริป -->
+    <!-- Header -->
     <div class="flex items-center justify-between mb-4">
-      <h1 class="text-2xl md:text-3xl font-bold">
-        ทริปของฉัน
-      </h1>
+      <h1 class="text-2xl md:text-3xl font-bold">ทริปของฉัน</h1>
 
       <button
         type="button"
@@ -20,31 +18,22 @@
       ตอนนี้เริ่มจากการดึงรายการทริปของคุณจาก backend มาก่อน 😊
     </p>
 
-    <!-- Loading -->
     <Loading v-if="loading" />
 
-    <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-    />
+    <ErrorState v-else-if="error" :message="error" />
 
-    <!-- ไม่มีทริป -->
     <EmptyState
       v-else-if="trips.length === 0"
       message="ยังไม่มีทริปที่คุณสร้างเลย ลองเริ่มสร้างทริปใหม่ดูไหม 🙂"
     />
 
-    <!-- มีทริปแล้ว -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <article
         v-for="trip in trips"
         :key="trip.id"
         class="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
       >
-        <h2 class="font-semibold text-lg mb-1">
-          {{ trip.title }}
-        </h2>
+        <h2 class="font-semibold text-lg mb-1">{{ trip.title }}</h2>
 
         <p class="text-sm text-sky-700 mb-1">
           {{ trip.province || "ไม่ระบุสถานที่" }}
@@ -58,9 +47,8 @@
           {{ trip.description || "ไม่มีรายละเอียดเพิ่มเติม" }}
         </p>
 
-        <!-- Tags -->
         <div
-          v-if="trip.tags && trip.tags.length > 0"
+          v-if="trip.tags?.length"
           class="mt-2 flex flex-wrap gap-2"
         >
           <span
@@ -72,10 +60,8 @@
           </span>
         </div>
 
-        <!-- ปุ่มจัดการ -->
         <div class="mt-3 flex items-center justify-between gap-2 text-xs">
           <button
-            type="button"
             class="px-3 py-1 rounded-md border text-sky-700 hover:bg-sky-50"
             @click="goToDetail(trip.id)"
           >
@@ -84,7 +70,6 @@
 
           <div class="flex items-center gap-2">
             <button
-              type="button"
               class="px-3 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
               @click="goToEdit(trip.id)"
             >
@@ -92,7 +77,6 @@
             </button>
 
             <button
-              type="button"
               class="px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
               :disabled="deletingId === trip.id"
               @click="confirmDelete(trip.id)"
@@ -116,12 +100,10 @@ import {
   getMyTrips,
 } from "@/services/tripService";
 
-// state components
 import Loading from "@/components/state/Loading.vue";
 import ErrorState from "@/components/state/ErrorState.vue";
 import EmptyState from "@/components/state/EmptyState.vue";
 
-// Toast
 import { useToast } from "vue-toastification";
 const toast = useToast();
 
@@ -138,10 +120,7 @@ async function fetchMyTrips() {
   error.value = "";
 
   if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    loading.value = false;
+    handleExpired();
     return;
   }
 
@@ -149,12 +128,25 @@ async function fetchMyTrips() {
     trips.value = await getMyTrips(auth.token);
   } catch (err: any) {
     console.error(err);
-    const message = err.message || "เกิดข้อผิดพลาดขณะโหลดข้อมูลทริป";
-    error.value = message;
-    toast.error(message);
+
+    if (err.status === 401) {
+      handleExpired();
+      return;
+    }
+
+    error.value = err.message || "เกิดข้อผิดพลาดขณะโหลดข้อมูลทริป";
+    toast.error(error.value);
   } finally {
     loading.value = false;
   }
+}
+
+function handleExpired() {
+  const msg = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+  toast.error(msg);
+  error.value = msg;
+  auth.logout();
+  router.push({ name: "login", query: { expired: "1" } });
 }
 
 function goCreateTrip() {
@@ -174,31 +166,29 @@ async function confirmDelete(id: number) {
   if (!ok) return;
 
   if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
+    handleExpired();
     return;
   }
 
   deletingId.value = id;
-  error.value = "";
 
   try {
     await apiDeleteTrip(id, auth.token);
     trips.value = trips.value.filter((t) => t.id !== id);
-
     toast.success("ลบทริปสำเร็จแล้ว 🗑️");
   } catch (err: any) {
-    console.error(err);
-    const message = err.message || "ลบทริปไม่สำเร็จ";
-    error.value = message;
-    toast.error(message);
+    if (err.status === 401) {
+      handleExpired();
+      return;
+    }
+
+    const msg = err.message || "ลบทริปไม่สำเร็จ";
+    error.value = msg;
+    toast.error(msg);
   } finally {
     deletingId.value = null;
   }
 }
 
-onMounted(() => {
-  fetchMyTrips();
-});
+onMounted(fetchMyTrips);
 </script>

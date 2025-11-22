@@ -1,25 +1,55 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-4">
-      <h1 class="text-2xl font-bold text-center">เข้าสู่ระบบ</h1>
+  <div class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div
+      class="w-full max-w-md bg-white rounded-2xl shadow-lg px-6 py-7 space-y-5 border border-slate-200"
+    >
+      <h1 class="text-2xl font-bold text-center text-slate-800">
+        เข้าสู่ระบบ
+      </h1>
 
+      <!-- Session Expired Banner -->
+      <transition name="fade-slide">
+        <div
+          v-if="sessionExpired"
+          class="relative overflow-hidden rounded-xl border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm flex items-start gap-3 shadow-sm"
+        >
+          <!-- decorative bar -->
+          <div class="w-1 bg-amber-400 rounded-full"></div>
+
+          <!-- icon + text -->
+          <div class="flex-1">
+            <p class="font-semibold mb-0.5">เซสชั่นหมดอายุแล้ว</p>
+            <p class="text-xs leading-snug">
+              เพื่อความปลอดภัย ระบบได้ออกจากระบบให้อัตโนมัติ
+              กรุณาเข้าสู่ระบบใหม่อีกครั้ง
+            </p>
+          </div>
+
+          <!-- shine effect -->
+          <span
+            class="pointer-events-none absolute -right-6 top-0 h-full w-12 bg-gradient-to-l from-white/80 via-white/40 to-transparent opacity-0 banner-shine"
+          />
+        </div>
+      </transition>
+
+      <!-- Form -->
       <form class="space-y-4" @submit.prevent="handleSubmit">
         <div>
-          <label class="block text-sm mb-1">อีเมล</label>
+          <label class="block text-sm mb-1 text-slate-700">อีเมล</label>
           <input
             v-model="email"
             type="email"
-            class="w-full border rounded-lg px-3 py-2 text-sm"
+            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
             required
           />
         </div>
 
         <div>
-          <label class="block text-sm mb-1">รหัสผ่าน</label>
+          <label class="block text-sm mb-1 text-slate-700">รหัสผ่าน</label>
           <input
             v-model="password"
             type="password"
-            class="w-full border rounded-lg px-3 py-2 text-sm"
+            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
             required
           />
         </div>
@@ -30,7 +60,7 @@
 
         <button
           type="submit"
-          class="w-full bg-sky-600 hover:bg-sky-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          class="w-full bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed transition"
           :disabled="loading"
         >
           {{ loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ" }}
@@ -41,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { login } from "@/services/authService";
 import { useAuthStore } from "@/stores/authStore";
@@ -49,13 +79,22 @@ import { useToast } from "vue-toastification";
 
 const router = useRouter();
 const route = useRoute();
-const authStore = useAuthStore();
 const toast = useToast();
+const auth = useAuthStore();
 
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
 const error = ref("");
+
+// detect ?expired=1
+const sessionExpired = computed(() => route.query.expired === "1");
+
+onMounted(() => {
+  if (sessionExpired.value) {
+    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+  }
+});
 
 interface AuthResponse {
   token: string;
@@ -74,30 +113,57 @@ async function handleSubmit() {
       password: password.value,
     })) as AuthResponse;
 
-    // อัปเดต Pinia store ให้ Navbar รู้ว่าเราล็อกอินแล้ว
-    authStore.login(res.token, {
+    auth.login(res.token, {
       email: res.email,
       displayName: res.displayName,
     });
 
     toast.success("เข้าสู่ระบบสำเร็จ 🎉");
 
-    // ถ้ามี redirect (เช่น มาจากหน้า requiresAuth) ให้เด้งกลับไปหน้านั้น
-    const redirect = (route.query.redirect as string) || null;
-    if (redirect) {
-      await router.push(redirect);
-    } else {
-      await router.push({ name: "home" });
-    }
+    // Redirect home + remove expired query
+    router.replace({ name: "home" });
   } catch (err: any) {
-    console.error(err);
-    const message =
+    const msg =
       err?.response?.data?.message ||
+      err?.message ||
       "เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง";
-    error.value = message;
-    toast.error(message);
+
+    error.value = msg;
+    toast.error(msg);
   } finally {
     loading.value = false;
   }
 }
 </script>
+
+<style scoped>
+/* fade-slide animation */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s ease-out;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* shine animation */
+.banner-shine {
+  animation: shine-move 1.6s ease-out 0.25s forwards;
+}
+
+@keyframes shine-move {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%);
+  }
+}
+</style>
