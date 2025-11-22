@@ -163,11 +163,28 @@ const longitude = ref("");
 const loading = ref(false);
 const error = ref("");
 
+// ฟังก์ชันรวมสำหรับ token หมดอายุ
+function goLoginExpired() {
+  auth.logout();
+  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+
+  router.push({
+    name: "login",
+    query: {
+      expired: "1",
+      redirect: router.currentRoute.value.fullPath,
+    },
+  });
+}
+
 async function handleSubmit() {
   error.value = "";
 
   if (!auth.token) {
-    toast.error("กรุณาเข้าสู่ระบบก่อนสร้างทริปใหม่");
+    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    toast.error(message);
+    error.value = message;
+    goLoginExpired();
     return;
   }
 
@@ -176,11 +193,15 @@ async function handleSubmit() {
   const descriptionTrim = description.value.trim();
 
   if (!titleTrim) {
-    toast.warning("กรุณากรอกชื่อทริป");
+    const message = "กรุณากรอกชื่อทริป";
+    toast.warning(message);
+    error.value = message;
     return;
   }
   if (!provinceTrim) {
-    toast.warning("กรุณากรอกสถานที่");
+    const message = "กรุณากรอกสถานที่";
+    toast.warning(message);
+    error.value = message;
     return;
   }
 
@@ -212,6 +233,13 @@ async function handleSubmit() {
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);
+
+    if (err?.status === 401) {
+      // token หมดอายุ
+      goLoginExpired();
+      return;
+    }
+
     const message = err.message || "บันทึกทริปไม่สำเร็จ";
     toast.error(message);
     error.value = message;

@@ -181,6 +181,20 @@ const mapEmbedUrl = computed(() => {
   return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
 });
 
+// ฟังก์ชันใช้ซ้ำตอน token หมดอายุ
+function goLoginExpired() {
+  auth.logout();
+  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+
+  router.push({
+    name: "login",
+    query: {
+      expired: "1",
+      redirect: router.currentRoute.value.fullPath,
+    },
+  });
+}
+
 onMounted(async () => {
   try {
     loading.value = true;
@@ -206,9 +220,10 @@ async function handleSubmit() {
   error.value = "";
 
   if (!auth.token) {
-    const message = "กรุณาเข้าสู่ระบบก่อนแก้ไขทริป";
+    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
     error.value = message;
     toast.error(message);
+    goLoginExpired();
     return;
   }
 
@@ -250,6 +265,13 @@ async function handleSubmit() {
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);
+
+    if (err?.status === 401) {
+      // token หมดอายุ
+      goLoginExpired();
+      return;
+    }
+
     const message = err.message || "เกิดข้อผิดพลาดในการบันทึกทริป";
     error.value = message;
     toast.error(message);

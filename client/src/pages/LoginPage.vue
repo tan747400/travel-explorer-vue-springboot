@@ -120,8 +120,13 @@ async function handleSubmit() {
 
     toast.success("เข้าสู่ระบบสำเร็จ 🎉");
 
-    // Redirect home + remove expired query
-    router.replace({ name: "home" });
+    const redirect = (route.query.redirect as string) || null;
+
+    if (redirect) {
+      await router.push(redirect);
+    } else {
+      await router.push({ name: "home" });
+    }
   } catch (err: any) {
     const msg =
       err?.response?.data?.message ||

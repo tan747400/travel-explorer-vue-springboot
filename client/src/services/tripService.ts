@@ -5,6 +5,13 @@ const API_BASE_URL =
 
 const API_BASE = `${API_BASE_URL}/api`;
 
+// แนบ status ลง error
+function buildError(message: string, status?: number): Error {
+  const err: any = new Error(message);
+  if (status) err.status = status;
+  return err;
+}
+
 /** ดึง Trips แบบ Pagination + Search */
 export async function getTrips(
   keyword = "",
@@ -20,9 +27,7 @@ export async function getTrips(
   const res = await fetch(`${API_BASE}/trips?${params.toString()}`);
 
   if (!res.ok) {
-    const err: any = new Error(`โหลดทริปไม่สำเร็จ (${res.status})`);
-    err.status = res.status;
-    throw err;
+    throw buildError(`โหลดทริปไม่สำเร็จ (${res.status})`, res.status);
   }
 
   return (await res.json()) as PagedTrips;
@@ -31,13 +36,7 @@ export async function getTrips(
 /** ดึงทริปเดี่ยว */
 export async function getTripById(id: number): Promise<Trip> {
   const res = await fetch(`${API_BASE}/trips/${id}`);
-
-  if (!res.ok) {
-    const err: any = new Error(`ไม่พบข้อมูลทริป (${res.status})`);
-    err.status = res.status;
-    throw err;
-  }
-
+  if (!res.ok) throw buildError(`ไม่พบข้อมูลทริป (${res.status})`, res.status);
   return (await res.json()) as Trip;
 }
 
@@ -49,11 +48,17 @@ export async function getMyTrips(token: string): Promise<Trip[]> {
     },
   });
 
-  const err: any = new Error("โหลดทริปไม่สำเร็จ");
-  err.status = res.status;
+  if (res.status === 401) {
+    // ให้ Dashboard รู้ว่า token หมดอายุ
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
 
-  if (res.status === 401) throw err;
-  if (!res.ok) throw err;
+  if (!res.ok) {
+    throw buildError("โหลดทริปไม่สำเร็จ", res.status);
+  }
 
   return (await res.json()) as Trip[];
 }
@@ -83,15 +88,23 @@ export async function createTrip(
   });
 
   const text = await res.text();
-  let data = null;
+  let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
-  } catch {}
+  } catch {
+    // ignore
+  }
+
+  if (res.status === 401) {
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
 
   if (!res.ok) {
-    const err: any = new Error(data?.message || "บันทึกทริปไม่สำเร็จ");
-    err.status = res.status;
-    throw err;
+    const msg = data?.message || data?.error || "บันทึกทริปไม่สำเร็จ";
+    throw buildError(msg, res.status);
   }
 
   return data as Trip;
@@ -113,15 +126,23 @@ export async function updateTrip(
   });
 
   const text = await res.text();
-  let data = null;
+  let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
-  } catch {}
+  } catch {
+    // ignore
+  }
+
+  if (res.status === 401) {
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
 
   if (!res.ok) {
-    const err: any = new Error(data?.message || "แก้ไขทริปไม่สำเร็จ");
-    err.status = res.status;
-    throw err;
+    const msg = data?.message || data?.error || "แก้ไขทริปไม่สำเร็จ";
+    throw buildError(msg, res.status);
   }
 
   return data as Trip;
@@ -134,12 +155,19 @@ export async function deleteTrip(id: number, token: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  const err: any = new Error("ลบทริปไม่สำเร็จ");
-  err.status = res.status;
+  if (res.status === 401) {
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
 
-  if (res.status === 401) throw err;
-  if (res.status === 403) throw err;
-  if (res.status === 404) throw err;
+  if (res.status === 403) {
+    throw buildError("คุณไม่มีสิทธิ์ลบทริปนี้", 403);
+  }
+  if (res.status === 404) {
+    throw buildError("ไม่พบทริป", 404);
+  }
 
-  if (!res.ok) throw err;
+  if (!res.ok) throw buildError("ลบทริปไม่สำเร็จ", res.status);
 }

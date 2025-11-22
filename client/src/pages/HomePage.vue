@@ -46,7 +46,7 @@
               </option>
             </select>
 
-            <!-- Custom caret: ใหญ่ & สีดำ -->
+            <!-- Custom caret -->
             <span
               class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-semibold text-black"
             >
@@ -72,7 +72,7 @@
 
           <!-- Tags Container -->
           <div class="relative w-full">
-            <!-- Mode: Horizontal Scroll (โหมดเริ่มต้น) -->
+            <!-- Mode: Horizontal Scroll -->
             <div
               v-if="!showAllTags"
               class="overflow-x-auto no-scrollbar -mx-2 px-2"
@@ -110,7 +110,7 @@
               </div>
             </div>
 
-            <!-- Mode: Wrapped (ตอนกดดูแท็กทั้งหมด) -->
+            <!-- Mode: Wrapped (ดูแท็กทั้งหมด) -->
             <div
               v-else
               class="flex flex-wrap gap-2 py-1 pt-2"
@@ -144,7 +144,7 @@
               </button>
             </div>
 
-            <!-- Gradient ด้านขวา (desktop เท่านั้น – mobile ไม่บังแท็ก) -->
+            <!-- Gradient ด้านขวา (desktop เท่านั้น) -->
             <div
               v-if="!showAllTags"
               class="pointer-events-none hidden md:block absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white to-transparent"
@@ -222,7 +222,7 @@ const trips = ref<Trip[]>([]);
 const status = ref<Status>("idle");
 const keyword = ref("");
 
-// ใช้โชว์ใน ErrorState
+// สำหรับ ErrorState
 const errorMessage = ref("");
 
 // pagination
@@ -351,15 +351,9 @@ onMounted(() => {
   fetchTrips(true);
 });
 
+// คลิกแท็กแล้วแทนค่าค้นหาเดิม ไม่ต่อท้าย
 function handleAddKeyword(tag: string) {
-  const tokens = keyword.value
-    .trim()
-    .split(" ")
-    .filter((t) => t.length > 0);
-
-  if (!tokens.includes(tag)) {
-    keyword.value = keyword.value ? `${keyword.value} ${tag}` : tag;
-  }
+  keyword.value = tag;
 }
 </script>
 
