@@ -10,7 +10,9 @@ import com.travel.explorer.server.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class TripService {
 
     private final TripRepository tripRepository;
+    private final ImageUploadService imageUploadService;   // <- อันนี้สำคัญ ต้องมี
 
     /**
      * ดึง trips แบบมี pagination + keyword search
@@ -83,6 +86,7 @@ public class TripService {
                 .latitude(req.getLatitude())
                 .longitude(req.getLongitude())
                 .author(owner)
+                // สร้างทริปใหม่ photos ยังเป็น null/ว่างได้
                 .build();
 
         Trip saved = tripRepository.save(trip);
@@ -131,6 +135,53 @@ public class TripService {
         }
 
         tripRepository.delete(trip);
+    }
+
+    /**
+     * อัปโหลดรูปหลายรูปสำหรับทริปหนึ่ง ๆ
+     * 1) เช็คสิทธิ์ว่าเป็นเจ้าของ
+     * 2) อัปโหลดแต่ละไฟล์ขึ้น Cloudinary
+     * 3) เอา URL ที่ได้ไป append ใส่ photos แล้ว save
+     * 4) คืน TripResponse ล่าสุด
+     */
+    public TripResponse uploadTripPhotos(Long id,
+                                         List<MultipartFile> files,
+                                         User currentUser) {
+
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Trip not found"));
+
+        // เช็คสิทธิ์: ต้องเป็นเจ้าของทริป
+        if (trip.getAuthor() == null ||
+                !trip.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("You are not allowed to upload photos for this trip");
+        }
+
+        // ดึง photos เดิม ถ้า null ให้สร้าง list ใหม่
+        List<String> photos = trip.getPhotos();
+        if (photos == null) {
+            photos = new ArrayList<>();
+        }
+
+        // loop ทุกไฟล์ที่ส่งมา
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+
+            // เรียก service อัปโหลดรูปขึ้น Cloudinary
+            String url = imageUploadService.uploadImage(file);
+
+            // ถ้าอัปโหลดสำเร็จ (มี url กลับมา) ก็เพิ่มเข้า list
+            if (url != null && !url.isBlank()) {
+                photos.add(url);
+            }
+        }
+
+        trip.setPhotos(photos);
+        Trip saved = tripRepository.save(trip);
+
+        return toResponse(saved);
     }
 
     // -------------------------

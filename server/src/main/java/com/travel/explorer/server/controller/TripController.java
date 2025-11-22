@@ -8,15 +8,16 @@ import com.travel.explorer.server.exception.ForbiddenException;
 import com.travel.explorer.server.repository.UserRepository;
 import com.travel.explorer.server.service.JwtService;
 import com.travel.explorer.server.service.TripService;
+import io.jsonwebtoken.JwtException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-
-import io.jsonwebtoken.JwtException;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -28,7 +29,10 @@ public class TripController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
-    // GET /api/trips?keyword=&page=0&size=6
+    // =======================
+    //   GET /api/trips
+    //   ?keyword=&page=0&size=6
+    // =======================
     @GetMapping
     public Page<TripResponse> getTrips(
             @RequestParam(name = "keyword", required = false) String keyword,
@@ -77,7 +81,9 @@ public class TripController {
         return ResponseEntity.ok(trips);
     }
 
-    // POST /api/trips  (สร้างทริปใหม่)
+    // =======================
+    //   POST /api/trips  (สร้างทริปใหม่)
+    // =======================
     @PostMapping
     public ResponseEntity<TripResponse> createTrip(
             @RequestHeader(name = "Authorization", required = false) String authHeader,
@@ -108,7 +114,9 @@ public class TripController {
         return ResponseEntity.status(201).body(created);
     }
 
-    // PUT /api/trips/{id}  (แก้ไขทริป)
+    // =======================
+    //   PUT /api/trips/{id}  (แก้ไขทริป)
+    // =======================
     @PutMapping("/{id}")
     public ResponseEntity<TripResponse> updateTrip(
             @PathVariable Long id,
@@ -149,7 +157,9 @@ public class TripController {
         }
     }
 
-    // DELETE /api/trips/{id}  (ลบทริป)
+    // =======================
+    //   DELETE /api/trips/{id}  (ลบทริป)
+    // =======================
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTrip(
             @PathVariable Long id,
@@ -179,6 +189,63 @@ public class TripController {
         try {
             tripService.deleteTrip(id, user);
             return ResponseEntity.noContent().build();
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(403).build();
+        } catch (RuntimeException e) {
+            if ("Trip not found".equals(e.getMessage())) {
+                return ResponseEntity.notFound().build();
+            }
+            throw e;
+        }
+    }
+
+    // =======================================
+    //   POST /api/trips/{id}/photos
+    //   อัปโหลดรูปทริปหลายรูป (Cloudinary)
+    // =======================================
+    @PostMapping(
+            value = "/{id}/photos",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<TripResponse> uploadTripPhotos(
+            @PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String authHeader,
+            @RequestParam("files") List<MultipartFile> files
+    ) {
+        // เช็คไฟล์ก่อน
+        if (files == null || files.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // auth แบบเดียวกับเมธอดอื่น
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return ResponseEntity.status(401).build();
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        try {
+            // ให้ TripService จัดการ:
+            // 1) อัปโหลดไป Cloudinary (ผ่าน ImageUploadService)
+            // 2) เซฟ URL ลง DB (เพิ่มใน photos)
+            // 3) คืน TripResponse ล่าสุดกลับมา
+            TripResponse updated = tripService.uploadTripPhotos(id, files, user);
+            return ResponseEntity.ok(updated);
         } catch (ForbiddenException e) {
             return ResponseEntity.status(403).build();
         } catch (RuntimeException e) {
