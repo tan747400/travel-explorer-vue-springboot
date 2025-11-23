@@ -16,11 +16,62 @@ function buildError(message: string, status?: number): Error {
   return err;
 }
 
+// parse JSON อย่างปลอดภัย (รองรับ body ว่าง ๆ)
+async function parseJsonSafe(res: Response): Promise<any | null> {
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+// ใช้สำหรับ request ที่ต้อง auth
+async function handleAuthJson<T>(
+  res: Response,
+  defaultErrorMessage: string
+): Promise<T> {
+  const data = await parseJsonSafe(res);
+
+  if (res.status === 401) {
+    // token หาย / หมดอายุ
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
+
+  if (res.status === 403) {
+    const msg =
+      data?.message ||
+      data?.error ||
+      "คุณไม่มีสิทธิ์ดำเนินการกับทริปนี้";
+    throw buildError(msg, 403);
+  }
+
+  if (!res.ok) {
+    const msg = data?.message || data?.error || defaultErrorMessage;
+    throw buildError(msg, res.status);
+  }
+
+  return data as T;
+}
+
+// =========================
+// Meta type
+// =========================
+
 // ใช้กับ endpoint /api/trips/meta
 export interface TripsMeta {
   provinces: string[];
   tags: string[];
 }
+
+// =========================
+// Public endpoints (ไม่ต้อง auth)
+// =========================
 
 /** ดึง Trips แบบ Pagination + Search */
 export async function getTrips(
@@ -60,11 +111,21 @@ export async function getTripsMeta(): Promise<TripsMeta> {
 /** ดึงทริปเดี่ยว */
 export async function getTripById(id: number): Promise<Trip> {
   const res = await fetch(`${API_BASE}/trips/${id}`);
+
+  if (res.status === 404) {
+    throw buildError("ไม่พบข้อมูลทริป", 404);
+  }
+
   if (!res.ok) {
     throw buildError(`ไม่พบข้อมูลทริป (${res.status})`, res.status);
   }
+
   return (await res.json()) as Trip;
 }
+
+// =========================
+// Protected endpoints (ต้อง auth)
+// =========================
 
 /** ดึงทริปของ user ปัจจุบัน */
 export async function getMyTrips(token: string): Promise<Trip[]> {
@@ -74,22 +135,13 @@ export async function getMyTrips(token: string): Promise<Trip[]> {
     },
   });
 
-  if (res.status === 401) {
-    // ให้ Dashboard รู้ว่า token หมดอายุ
-    throw buildError(
-      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      401
-    );
-  }
-
-  if (!res.ok) {
-    throw buildError("โหลดทริปไม่สำเร็จ", res.status);
-  }
-
-  return (await res.json()) as Trip[];
+  return handleAuthJson<Trip[]>(
+    res,
+    "โหลดทริปของฉันไม่สำเร็จ"
+  );
 }
 
-/** Payload */
+/** Payload สำหรับ create / update */
 export interface TripPayload {
   title: string;
   province: string;
@@ -113,27 +165,8 @@ export async function createTrip(
     body: JSON.stringify(payload),
   });
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    // ignore
-  }
-
-  if (res.status === 401) {
-    throw buildError(
-      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      401
-    );
-  }
-
-  if (!res.ok) {
-    const msg = data?.message || data?.error || "บันทึกทริปไม่สำเร็จ";
-    throw buildError(msg, res.status);
-  }
-
-  return data as Trip;
+  // ถ้า backend ส่ง message มาพิเศษ (เช่น duplicate, validation) จะถูกดึงใช้ใน handleAuthJson
+  return handleAuthJson<Trip>(res, "บันทึกทริปไม่สำเร็จ");
 }
 
 /** อัปเดตทริป */
@@ -151,27 +184,10 @@ export async function updateTrip(
     body: JSON.stringify(payload),
   });
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    // ignore
-  }
-
-  if (res.status === 401) {
-    throw buildError(
-      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      401
-    );
-  }
-
-  if (!res.ok) {
-    const msg = data?.message || data?.error || "แก้ไขทริปไม่สำเร็จ";
-    throw buildError(msg, res.status);
-  }
-
-  return data as Trip;
+  return handleAuthJson<Trip>(
+    res,
+    "แก้ไขทริปไม่สำเร็จ"
+  );
 }
 
 /** ลบทริป */
@@ -181,21 +197,8 @@ export async function deleteTrip(id: number, token: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (res.status === 401) {
-    throw buildError(
-      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      401
-    );
-  }
-
-  if (res.status === 403) {
-    throw buildError("คุณไม่มีสิทธิ์ลบทริปนี้", 403);
-  }
-  if (res.status === 404) {
-    throw buildError("ไม่พบทริป", 404);
-  }
-
-  if (!res.ok) throw buildError("ลบทริปไม่สำเร็จ", res.status);
+  // ใช้ helper เดิม เพื่อให้ 401 / 403 ได้ message เดียวกัน
+  await handleAuthJson<null>(res, "ลบทริปไม่สำเร็จ");
 }
 
 /** อัปโหลดรูปทริปไปยัง Cloudinary ผ่าน backend */
@@ -219,25 +222,8 @@ export async function uploadTripPhotos(
     body: formData,
   });
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    // ignore
-  }
-
-  if (res.status === 401) {
-    throw buildError(
-      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
-      401
-    );
-  }
-
-  if (!res.ok) {
-    const msg = data?.message || data?.error || "อัปโหลดรูปไม่สำเร็จ";
-    throw buildError(msg, res.status);
-  }
-
-  return data as Trip;
+  return handleAuthJson<Trip>(
+    res,
+    "อัปโหลดรูปไม่สำเร็จ"
+  );
 }

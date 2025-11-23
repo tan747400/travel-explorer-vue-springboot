@@ -29,6 +29,9 @@ export const useAuthStore = defineStore("auth", {
 
   getters: {
     isLoggedIn: (state) => !!state.token,
+    userId: (state) => state.user?.userId ?? null,
+    userEmail: (state) => state.user?.email ?? "",
+    displayName: (state) => state.user?.displayName ?? "",
   },
 
   actions: {
@@ -49,12 +52,12 @@ export const useAuthStore = defineStore("auth", {
 
     /**
      * เผื่อโค้ดเดิมที่ยังเรียก authStore.login(token, user)
-     * จะให้ทำงานเหมือน setAuth แต่ไม่บังคับต้องมี userId
+     * จะ map ให้เข้าโครงสร้างใหม่ (ถ้าไม่มี userId ให้ใช้ 0 ไปก่อน)
      */
-    login(token: string, user: { email: string; displayName?: string }) {
+    login(token: string, user: { email: string; displayName?: string; userId?: number }) {
       this.token = token;
       this.user = {
-        userId: this.user?.userId ?? 0, // ถ้าไม่มีให้เป็น 0 ไปก่อน
+        userId: user.userId ?? this.user?.userId ?? 0,
         email: user.email,
         displayName: user.displayName || "",
       };

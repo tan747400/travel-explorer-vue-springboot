@@ -247,6 +247,54 @@ function goLoginExpired() {
   });
 }
 
+// validation พื้นฐาน
+function validateForm(): boolean {
+  const titleTrim = title.value.trim();
+  const provinceTrim = province.value.trim();
+  const descriptionTrim = description.value.trim();
+
+  if (titleTrim.length < 3) {
+    const msg = "ชื่อทริปต้องมีอย่างน้อย 3 ตัวอักษร";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+  if (provinceTrim.length < 2) {
+    const msg = "กรุณากรอกชื่อสถานที่ให้ถูกต้อง";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+  if (descriptionTrim.length > 1000) {
+    const msg = "รายละเอียดต้องไม่เกิน 1000 ตัวอักษร";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+
+  if (latitude.value) {
+    const lat = Number(latitude.value);
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      const msg = "Latitude ต้องอยู่ระหว่าง -90 ถึง 90";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
+  }
+
+  if (longitude.value) {
+    const lng = Number(longitude.value);
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      const msg = "Longitude ต้องอยู่ระหว่าง -180 ถึง 180";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function handleSubmit() {
   error.value = "";
 
@@ -258,22 +306,11 @@ async function handleSubmit() {
     return;
   }
 
+  if (!validateForm()) return;
+
   const titleTrim = title.value.trim();
   const provinceTrim = province.value.trim();
   const descriptionTrim = description.value.trim();
-
-  if (!titleTrim) {
-    const message = "กรุณากรอกชื่อทริป";
-    toast.warning(message);
-    error.value = message;
-    return;
-  }
-  if (!provinceTrim) {
-    const message = "กรุณากรอกสถานที่";
-    toast.warning(message);
-    error.value = message;
-    return;
-  }
 
   const tags =
     tagsInput.value
@@ -317,8 +354,13 @@ async function handleSubmit() {
     console.error(err);
 
     if (err?.status === 401) {
-      // token หมดอายุ
       goLoginExpired();
+      return;
+    }
+    if (err?.status === 403) {
+      const msg = "คุณสามารถสร้าง/แก้ไขทริปได้เมื่อเข้าสู่ระบบเท่านั้น";
+      error.value = msg;
+      toast.error(msg);
       return;
     }
 
@@ -334,5 +376,3 @@ function goBack() {
   router.push({ name: "dashboard" });
 }
 </script>
-
-

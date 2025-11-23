@@ -120,7 +120,10 @@
           </h2>
 
           <!-- แสดงรูปที่มีอยู่แล้ว -->
-          <div v-if="trip && trip.photos && trip.photos.length" class="flex flex-wrap gap-3 mb-4">
+          <div
+            v-if="trip && trip.photos && trip.photos.length"
+            class="flex flex-wrap gap-3 mb-4"
+          >
             <img
               v-for="url in trip.photos"
               :key="url"
@@ -261,6 +264,54 @@ function goLoginExpired() {
   });
 }
 
+// validation พื้นฐาน
+function validateForm(): boolean {
+  const titleTrim = title.value.trim();
+  const provinceTrim = province.value.trim();
+  const descriptionTrim = description.value.trim();
+
+  if (titleTrim.length < 3) {
+    const msg = "ชื่อทริปต้องมีอย่างน้อย 3 ตัวอักษร";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+  if (provinceTrim.length < 2) {
+    const msg = "กรุณากรอกชื่อสถานที่ให้ถูกต้อง";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+  if (descriptionTrim.length > 1000) {
+    const msg = "รายละเอียดต้องไม่เกิน 1000 ตัวอักษร";
+    error.value = msg;
+    toast.warning(msg);
+    return false;
+  }
+
+  if (latitude.value) {
+    const lat = Number(latitude.value);
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      const msg = "Latitude ต้องอยู่ระหว่าง -90 ถึง 90";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
+  }
+
+  if (longitude.value) {
+    const lng = Number(longitude.value);
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      const msg = "Longitude ต้องอยู่ระหว่าง -180 ถึง 180";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 onMounted(async () => {
   try {
     loading.value = true;
@@ -272,7 +323,8 @@ onMounted(async () => {
     description.value = loaded.description || "";
     tagsInput.value = loaded.tags ? loaded.tags.join(", ") : "";
     latitude.value = loaded.latitude != null ? String(loaded.latitude) : "";
-    longitude.value = loaded.longitude != null ? String(loaded.longitude) : "";
+    longitude.value =
+      loaded.longitude != null ? String(loaded.longitude) : "";
   } catch (err: any) {
     console.error(err);
     const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
@@ -294,22 +346,11 @@ async function handleSubmit() {
     return;
   }
 
+  if (!validateForm()) return;
+
   const titleTrim = title.value.trim();
   const provinceTrim = province.value.trim();
   const descriptionTrim = description.value.trim();
-
-  if (!titleTrim) {
-    const message = "กรุณากรอกชื่อทริป";
-    error.value = message;
-    toast.warning(message);
-    return;
-  }
-  if (!provinceTrim) {
-    const message = "กรุณากรอกสถานที่";
-    error.value = message;
-    toast.warning(message);
-    return;
-  }
 
   const tags = tagsInput.value
     .split(",")
@@ -336,8 +377,13 @@ async function handleSubmit() {
     console.error(err);
 
     if (err?.status === 401) {
-      // token หมดอายุ
       goLoginExpired();
+      return;
+    }
+    if (err?.status === 403) {
+      const msg = "คุณสามารถแก้ไขทริปที่คุณสร้างเองเท่านั้น";
+      error.value = msg;
+      toast.error(msg);
       return;
     }
 
@@ -385,7 +431,11 @@ async function handleUploadPhotos() {
 
   try {
     uploadingPhotos.value = true;
-    const updated = await uploadTripPhotos(tripId, auth.token, uploadFiles.value);
+    const updated = await uploadTripPhotos(
+      tripId,
+      auth.token,
+      uploadFiles.value
+    );
     trip.value = updated;
     uploadFiles.value = [];
     uploadError.value = "";
