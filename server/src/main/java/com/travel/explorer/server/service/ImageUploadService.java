@@ -20,13 +20,15 @@ public class ImageUploadService {
     public String uploadImage(MultipartFile file) {
 
         try {
-            Map uploadResult = cloudinary.uploader().upload(
+            // ใช้ Generic ให้ถูกต้อง
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", "travel-explorer/trips" // แนะนำให้แยกโฟลเดอร์
+                            "folder", "travel-explorer/trips"   // แยกโฟลเดอร์เก็บรูป
                     )
             );
 
+            // secure_url = URL แบบ HTTPS
             return uploadResult.get("secure_url").toString();
 
         } catch (Exception e) {
