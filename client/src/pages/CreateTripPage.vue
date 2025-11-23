@@ -110,6 +110,45 @@
           </div>
         </div>
 
+        <!-- รูปภาพทริป -->
+        <div>
+          <label class="block text-sm font-medium mb-1">
+            รูปภาพทริป (อัปโหลดได้หลายรูป, ไม่บังคับ)
+          </label>
+
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4
+                   file:rounded-md file:border-0 file:text-sm file:font-medium
+                   file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+            @change="handleFilesChange"
+          />
+
+          <p class="text-xs text-gray-400 mt-1">
+            รองรับไฟล์รูปภาพทั่วไป เช่น .jpg, .png, .webp
+          </p>
+
+          <!-- Preview -->
+          <div
+            v-if="previewUrls.length > 0"
+            class="mt-3 grid grid-cols-3 gap-2"
+          >
+            <div
+              v-for="(url, idx) in previewUrls"
+              :key="idx"
+              class="relative"
+            >
+              <img
+                :src="url"
+                alt="preview"
+                class="h-24 w-full rounded-md object-cover border"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Error message -->
         <p v-if="error" class="text-sm text-red-500">
           {{ error }}
@@ -139,10 +178,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
-import { createTrip, type TripPayload } from "@/services/tripService";
+import {
+  createTrip,
+  uploadTripPhotos,
+  type TripPayload,
+} from "@/services/tripService";
 
 // Toast
 import { useToast } from "vue-toastification";
@@ -160,8 +203,35 @@ const tagsInput = ref("");
 const latitude = ref("");
 const longitude = ref("");
 
+// files + preview
+const selectedFiles = ref<File[]>([]);
+const previewUrls = ref<string[]>([]);
+
 const loading = ref(false);
 const error = ref("");
+
+// ---------- helper: จัดการ preview URLs ----------
+function clearPreviews() {
+  previewUrls.value.forEach((url) => URL.revokeObjectURL(url));
+  previewUrls.value = [];
+}
+
+function handleFilesChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const files = input.files ? Array.from(input.files) : [];
+
+  selectedFiles.value = files;
+
+  // เคลียร์ URL เก่า
+  clearPreviews();
+
+  // สร้าง URL ใหม่
+  previewUrls.value = files.map((file) => URL.createObjectURL(file));
+}
+
+onBeforeUnmount(() => {
+  clearPreviews();
+});
 
 // ฟังก์ชันรวมสำหรับ token หมดอายุ
 function goLoginExpired() {
@@ -226,7 +296,19 @@ async function handleSubmit() {
   loading.value = true;
 
   try {
-    await createTrip(auth.token, payload);
+    // 1) สร้างทริปหลักก่อน
+    const trip = await createTrip(auth.token, payload);
+
+    // 2) ถ้ามีรูป → อัปโหลดรูปต่อ
+    if (selectedFiles.value.length > 0) {
+      try {
+        await uploadTripPhotos(trip.id, auth.token, selectedFiles.value);
+      } catch (uploadErr: any) {
+        console.error(uploadErr);
+        // ถ้าอัปโหลดรูปพลาด แต่สร้างทริปสำเร็จแล้ว → แจ้งเตือนแยก
+        toast.warning("บันทึกทริปแล้ว แต่บางรูปอัปโหลดไม่สำเร็จ");
+      }
+    }
 
     toast.success("บันทึกทริปเรียบร้อยแล้ว 🎉");
 
@@ -252,3 +334,5 @@ function goBack() {
   router.push({ name: "dashboard" });
 }
 </script>
+
+

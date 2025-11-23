@@ -5,11 +5,21 @@ const API_BASE_URL =
 
 const API_BASE = `${API_BASE_URL}/api`;
 
+// =========================
+// Helpers
+// =========================
+
 // แนบ status ลง error
 function buildError(message: string, status?: number): Error {
   const err: any = new Error(message);
   if (status) err.status = status;
   return err;
+}
+
+// ใช้กับ endpoint /api/trips/meta
+export interface TripsMeta {
+  provinces: string[];
+  tags: string[];
 }
 
 /** ดึง Trips แบบ Pagination + Search */
@@ -31,6 +41,20 @@ export async function getTrips(
   }
 
   return (await res.json()) as PagedTrips;
+}
+
+/** ดึง meta (province + tags ทั้งหมดจากทุกทริป) */
+export async function getTripsMeta(): Promise<TripsMeta> {
+  const res = await fetch(`${API_BASE}/trips/meta`);
+
+  if (!res.ok) {
+    throw buildError(
+      `โหลดข้อมูลตัวกรองไม่สำเร็จ (${res.status})`,
+      res.status
+    );
+  }
+
+  return (await res.json()) as TripsMeta;
 }
 
 /** ดึงทริปเดี่ยว */

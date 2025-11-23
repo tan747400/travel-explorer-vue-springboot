@@ -29,26 +29,19 @@
           <div class="relative">
             <select
               v-model="selectedProvince"
-              class="
-                border border-slate-300 rounded-lg px-3 py-1.5 pr-10
-                bg-white text-xs sm:text-sm shadow-sm
-                focus:outline-none focus:ring-2 focus:ring-sky-400
-                appearance-none cursor-pointer
-              "
+              class="border border-slate-300 rounded-lg px-3 py-1.5 pr-10
+                     bg-white text-xs sm:text-sm shadow-sm
+                     focus:outline-none focus:ring-2 focus:ring-sky-400
+                     appearance-none cursor-pointer"
             >
               <option value="">ทั้งหมด</option>
-              <option
-                v-for="prov in provinces"
-                :key="prov"
-                :value="prov"
-              >
+              <option v-for="prov in provinces" :key="prov" :value="prov">
                 {{ prov }}
               </option>
             </select>
 
-            <!-- Custom caret -->
             <span
-              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-semibold text-black"
+              class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base font-semibold text-black"
             >
               ▾
             </span>
@@ -57,115 +50,53 @@
 
         <!-- Tag Filter -->
         <div class="flex flex-col gap-2 w-full">
-          <!-- Header แท็ก + ปุ่มดูทั้งหมด -->
-          <div
-            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
-          >
+          <div class="flex flex-row items-center justify-between">
             <span class="text-xs sm:text-sm text-gray-500">แท็ก:</span>
 
             <button
               v-if="shouldShowToggle"
-              type="button"
-              class="self-start sm:self-auto text-[11px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline whitespace-nowrap"
               @click="showAllTags = !showAllTags"
+              class="text-[11px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline"
             >
               {{ showAllTags ? "ซ่อนแท็ก" : "ดูแท็กทั้งหมด" }}
             </button>
           </div>
 
-          <!-- Tags Container -->
-          <div class="relative w-full">
-            <!-- Mode: Horizontal Scroll (แสดงบางส่วน / มือถือ / จอเล็ก) -->
-            <div
-              v-if="!showAllTags"
-              class="overflow-x-auto no-scrollbar"
+          <!-- Responsive Tags -->
+          <div
+            class="flex flex-wrap gap-2 transition-all duration-200"
+            :class="showAllTags ? '' : 'max-h-[34px] overflow-hidden'"
+          >
+            <!-- All -->
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs shadow-sm whitespace-nowrap"
+              :class="selectedTag === '' ? 'bg-sky-600 text-white border-sky-600'
+                                         : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'"
+              @click="selectedTag = ''"
             >
-              <div
-                class="flex gap-2 py-1 pl-2 pr-5 sm:pl-1 sm:pr-6 w-max"
-              >
-                <!-- ทั้งหมด -->
-                <button
-                  type="button"
-                  class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs whitespace-nowrap shadow-sm transition"
-                  :class="
-                    selectedTag === ''
-                      ? 'bg-sky-600 text-white border-sky-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
-                  "
-                  @click="selectedTag = ''"
-                >
-                  ทั้งหมด
-                </button>
+              ทั้งหมด
+            </button>
 
-                <!-- Tags (แสดงแค่บางส่วน) -->
-                <button
-                  v-for="tag in displayedTags"
-                  :key="tag"
-                  type="button"
-                  class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs whitespace-nowrap shadow-sm transition"
-                  :class="
-                    selectedTag === tag
-                      ? 'bg-sky-600 text-white border-sky-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
-                  "
-                  @click="selectedTag = tag"
-                >
-                  #{{ tag }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Mode: Wrapped (ดูแท็กทั้งหมด) -->
-            <div
-              v-else
-              class="flex flex-wrap gap-2 py-1 pt-2"
+            <!-- Tags Loop -->
+            <button
+              v-for="tag in tags"
+              :key="tag"
+              type="button"
+              class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs shadow-sm whitespace-nowrap"
+              :class="selectedTag === tag ? 'bg-sky-600 text-white border-sky-600'
+                                          : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'"
+              @click="selectedTag = tag"
             >
-              <button
-                type="button"
-                class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs whitespace-nowrap shadow-sm transition"
-                :class="
-                  selectedTag === ''
-                    ? 'bg-sky-600 text-white border-sky-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
-                "
-                @click="selectedTag = ''"
-              >
-                ทั้งหมด
-              </button>
-
-              <!-- ในโหมดนี้ใช้ tags ทั้งหมด ไม่ตัด -->
-              <button
-                v-for="tag in tags"
-                :key="tag"
-                type="button"
-                class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs whitespace-nowrap shadow-sm transition"
-                :class="
-                  selectedTag === tag
-                    ? 'bg-sky-600 text-white border-sky-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
-                "
-                @click="selectedTag = tag"
-              >
-                #{{ tag }}
-              </button>
-            </div>
-
-            <!-- Gradient ด้านขวา (โชว์เฉพาะจอใหญ่ เมื่ออยู่โหมดเลื่อนแนวนอน) -->
-            <div
-              v-if="!showAllTags"
-              class="pointer-events-none hidden md:block absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent"
-            ></div>
+              #{{ tag }}
+            </button>
           </div>
         </div>
       </section>
 
       <!-- States -->
       <Loading v-if="status === 'loading'" />
-
-      <ErrorState
-        v-else-if="status === 'error'"
-        :message="errorMessage"
-      />
+      <ErrorState v-else-if="status === 'error'" :message="errorMessage" />
 
       <EmptyState
         v-else-if="status === 'success' && filteredTrips.length === 0"
@@ -173,10 +104,7 @@
       />
 
       <!-- Trip List -->
-      <div
-        v-else-if="status === 'success'"
-        class="flex flex-col gap-6"
-      >
+      <div v-else-if="status === 'success'" class="flex flex-col gap-6">
         <TripCard
           v-for="item in filteredTrips"
           :key="item.id"
@@ -188,15 +116,12 @@
         <!-- Load More -->
         <div class="flex justify-center mt-6">
           <button
-            v-if="filteredTrips.length >= size && !lastPage"
-            type="button"
+            v-if="!lastPage"
             class="px-5 py-2.5 rounded-full border border-sky-500 text-sky-600 text-sm font-medium
-                   bg-white shadow-sm hover:bg-sky-50 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            :disabled="loadingMore"
+                   bg-white shadow-sm hover:bg-sky-50"
             @click="fetchTrips(false)"
           >
-            <span v-if="loadingMore">Loading...</span>
-            <span v-else>Load more</span>
+            Load more
           </button>
         </div>
       </div>
@@ -205,143 +130,137 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import SearchBar from "../components/SearchBar.vue";
 import TripCard from "../components/TripCard.vue";
 import Loading from "../components/state/Loading.vue";
 import ErrorState from "../components/state/ErrorState.vue";
 import EmptyState from "../components/state/EmptyState.vue";
-import { getTrips } from "../services/tripService";
+
+import { getTrips, getTripsMeta } from "../services/tripService";
 import type { Trip } from "../types/trip";
 import { useDebouncedEffect } from "../composables/useDebouncedEffect";
-import { useToast } from "vue-toastification";
-
-const toast = useToast();
 
 type Status = "idle" | "loading" | "success" | "error";
 
-const trips = ref<Trip[]>([]);
 const status = ref<Status>("idle");
-const keyword = ref("");
 
-const errorMessage = ref("");
+const trips = ref<Trip[]>([]);
+const provinces = ref<string[]>([]);
+const tags = ref<string[]>([]);
+
+const selectedProvince = ref("");
+const selectedTag = ref("");
+const keyword = ref("");
 
 const page = ref(0);
 const size = ref(6);
 const lastPage = ref(false);
-const loadingMore = ref(false);
 
-const selectedProvince = ref<string>("");
-const selectedTag = ref<string>("");
-
-const provinces = ref<string[]>([]);
-const tags = ref<string[]>([]);
-
-// แสดงแท็กเต็มแค่จำนวนนี้ในโหมดเลื่อนแนวนอน
-const TAG_LIMIT = 12;
 const showAllTags = ref(false);
+const shouldShowToggle = computed(() => tags.value.length > 8);
 
-// แท็กที่แสดงในโหมดเลื่อนแนวนอน
-const displayedTags = computed(() => {
-  return tags.value.slice(0, TAG_LIMIT);
-});
+const errorMessage = ref("");
 
-// ควรแสดงปุ่ม "ดูแท็กทั้งหมด" ไหม
-const shouldShowToggle = computed(() => {
-  return tags.value.length > TAG_LIMIT;
-});
+// กันข้อมูลซ้ำเวลามีหลายหน้า
+const loadedIds = new Set<number>();
 
-function buildFilterOptions(allTrips: Trip[]) {
-  const provSet = new Set<string>();
-  const tagSet = new Set<string>();
-
-  for (const t of allTrips) {
-    if (t.province) provSet.add(t.province);
-
-    if (t.tags) {
-      t.tags.forEach((tag) => {
-        if (tag && tag.trim().length > 0) tagSet.add(tag.trim());
-      });
-    }
-  }
-
-  provinces.value = Array.from(provSet).sort((a, b) =>
-    a.localeCompare(b, "th")
-  );
-  tags.value = Array.from(tagSet).sort((a, b) =>
-    a.localeCompare(b, "th")
-  );
-
-  // ถ้าแท็กน้อยกว่าเท่ากับ LIMIT จะไม่บังคับให้เปิดโหมด "ดูทั้งหมด"
-  if (tags.value.length <= TAG_LIMIT) {
-    showAllTags.value = false;
+/* โหลด meta (province, tag) */
+async function loadMeta() {
+  try {
+    const meta = await getTripsMeta();
+    provinces.value = meta.provinces;
+    tags.value = meta.tags;
+  } catch (e) {
+    console.error(e);
   }
 }
 
+/* Filter trip ตาม province / tag */
 const filteredTrips = computed(() => {
   return trips.value.filter((t) => {
     if (selectedProvince.value && t.province !== selectedProvince.value)
       return false;
-
-    if (selectedTag.value) {
-      const list = t.tags || [];
-      if (!list.includes(selectedTag.value)) return false;
-    }
+    if (selectedTag.value && !(t.tags || []).includes(selectedTag.value))
+      return false;
     return true;
   });
 });
 
-async function fetchTrips(reset: boolean) {
+/* ดึง trip ทีละ page */
+async function fetchTrips(reset = false) {
   try {
     if (reset) {
       status.value = "loading";
-      trips.value = [];
       page.value = 0;
       lastPage.value = false;
-      errorMessage.value = "";
-    } else {
-      loadingMore.value = true;
+      trips.value = [];
+      loadedIds.clear();
     }
 
     const result = await getTrips(keyword.value, page.value, size.value);
 
-    trips.value = reset ? result.content : [...trips.value, ...result.content];
+    // กัน id ซ้ำ
+    const unique = result.content.filter((t: Trip) => {
+      if (loadedIds.has(t.id)) return false;
+      loadedIds.add(t.id);
+      return true;
+    });
 
+    trips.value.push(...unique);
     lastPage.value = result.last;
     page.value = result.number + 1;
 
-    buildFilterOptions(trips.value);
     status.value = "success";
   } catch (err: any) {
-    const message = err?.message || "โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง";
-    errorMessage.value = message;
-
-    if (reset) status.value = "error";
-
-    toast.error(message);
-  } finally {
-    loadingMore.value = false;
+    status.value = "error";
+    errorMessage.value = err.message || "โหลดข้อมูลล้มเหลว";
   }
 }
 
+/* โหลดทุกหน้าให้ครบก่อนเวลา filter ด้วย province / tag */
+async function ensureAllTripsLoaded() {
+  while (!lastPage.value) {
+    await fetchTrips(false);
+  }
+}
+
+/* ถ้าเปลี่ยน province หรือ tag ให้ไปโหลดหน้าที่เหลือให้ครบก่อน */
+watch([selectedProvince, selectedTag], async ([p, t]) => {
+  if (!p && !t) return;
+  await ensureAllTripsLoaded();
+});
+
+/* keyword search – ยิงใหม่ & reset filter */
 useDebouncedEffect(
   () => {
     selectedProvince.value = "";
     selectedTag.value = "";
-    showAllTags.value = false;
     fetchTrips(true);
   },
   [keyword],
   300
 );
 
-onMounted(() => {
-  fetchTrips(true);
-});
-
 function handleAddKeyword(tag: string) {
   keyword.value = tag;
 }
+
+/* initial load + บังคับเลื่อนขึ้นบนสุดให้เห็น navbar ทุกครั้งที่เข้า / รีเฟรช */
+onMounted(async () => {
+  // ปิด behavior scroll-restore ของ browser
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
+  // รอให้ browser ทำงานรอบแรกเสร็จก่อน แล้วค่อยเลื่อนขึ้นบนสุด
+  setTimeout(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, 0);
+
+  await loadMeta();
+  await fetchTrips(true);
+});
 </script>
 
 <style scoped></style>

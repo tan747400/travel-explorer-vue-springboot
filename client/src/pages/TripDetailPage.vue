@@ -50,13 +50,18 @@
             v-for="(p, idx) in trip.photos"
             :key="idx"
             type="button"
-            class="relative group"
+            class="relative group aspect-[4/3] w-full overflow-hidden rounded-lg bg-slate-100"
             @click="selectPhoto(idx)"
           >
             <img
               :src="p"
-              class="h-24 w-full rounded-lg object-cover transition-opacity"
-              :class="idx === mainImageIndex ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'"
+              :alt="`photo-${idx}`"
+              class="w-full h-full object-contain object-center transition-opacity"
+              :class="
+                idx === mainImageIndex
+                  ? 'opacity-100'
+                  : 'opacity-80 group-hover:opacity-100'
+              "
             />
             <span
               v-if="idx === mainImageIndex"
