@@ -113,6 +113,58 @@
           ></iframe>
         </div>
 
+        <!-- รูปภาพทริป / อัปโหลดรูปเพิ่ม -->
+        <section class="mt-6 border-t border-slate-200 pt-4">
+          <h2 class="text-sm font-semibold mb-3">
+            รูปภาพทริป
+          </h2>
+
+          <!-- แสดงรูปที่มีอยู่แล้ว -->
+          <div v-if="trip && trip.photos && trip.photos.length" class="flex flex-wrap gap-3 mb-4">
+            <img
+              v-for="url in trip.photos"
+              :key="url"
+              :src="url"
+              :alt="trip.title"
+              class="w-28 h-20 object-cover rounded-lg border"
+            />
+          </div>
+          <p
+            v-else
+            class="text-xs text-gray-500 mb-3"
+          >
+            ยังไม่มีรูปภาพในทริปนี้ ลองอัปโหลดรูปดูนะ
+          </p>
+
+          <!-- อินพุตเลือกไฟล์ + ปุ่มอัปโหลด -->
+          <div class="flex flex-col gap-2 max-w-md">
+            <input
+              ref="fileInputRef"
+              type="file"
+              multiple
+              accept="image/*"
+              @change="onFilesSelected"
+              class="block w-full text-sm text-gray-700"
+            />
+
+            <button
+              type="button"
+              class="inline-flex items-center justify-center px-4 py-2 rounded-lg
+                     bg-sky-600 text-white text-sm font-medium
+                     hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="uploadingPhotos || !uploadFiles.length"
+              @click="handleUploadPhotos"
+            >
+              <span v-if="uploadingPhotos">กำลังอัปโหลดรูป...</span>
+              <span v-else>อัปโหลดรูปเพิ่ม</span>
+            </button>
+
+            <p v-if="uploadError" class="text-xs text-red-500">
+              {{ uploadError }}
+            </p>
+          </div>
+        </section>
+
         <!-- Error -->
         <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
@@ -143,7 +195,12 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
-import { getTripById, updateTrip } from "@/services/tripService";
+import {
+  getTripById,
+  updateTrip,
+  uploadTripPhotos,
+} from "@/services/tripService";
+import type { Trip } from "@/types/trip";
 
 // Toast
 import { useToast } from "vue-toastification";
@@ -152,6 +209,11 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+
+const tripId = Number(route.params.id);
+
+// state ทริปเต็ม ๆ (ไว้ดูรูป)
+const trip = ref<Trip | null>(null);
 
 const title = ref("");
 const province = ref("");
@@ -163,7 +225,11 @@ const longitude = ref("");
 const loading = ref(false);
 const error = ref("");
 
-const tripId = Number(route.params.id);
+// สำหรับอัปโหลดรูป
+const uploadFiles = ref<File[]>([]);
+const uploadingPhotos = ref(false);
+const uploadError = ref("");
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // มีพิกัดไหม
 const hasLocation = computed(() => {
@@ -198,14 +264,15 @@ function goLoginExpired() {
 onMounted(async () => {
   try {
     loading.value = true;
-    const trip = await getTripById(tripId);
+    const loaded = await getTripById(tripId);
+    trip.value = loaded;
 
-    title.value = trip.title || "";
-    province.value = trip.province || "";
-    description.value = trip.description || "";
-    tagsInput.value = trip.tags ? trip.tags.join(", ") : "";
-    latitude.value = trip.latitude != null ? String(trip.latitude) : "";
-    longitude.value = trip.longitude != null ? String(trip.longitude) : "";
+    title.value = loaded.title || "";
+    province.value = loaded.province || "";
+    description.value = loaded.description || "";
+    tagsInput.value = loaded.tags ? loaded.tags.join(", ") : "";
+    latitude.value = loaded.latitude != null ? String(loaded.latitude) : "";
+    longitude.value = loaded.longitude != null ? String(loaded.longitude) : "";
   } catch (err: any) {
     console.error(err);
     const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
@@ -252,7 +319,7 @@ async function handleSubmit() {
   try {
     loading.value = true;
 
-    await updateTrip(tripId, auth.token, {
+    const updated = await updateTrip(tripId, auth.token, {
       title: titleTrim,
       province: provinceTrim,
       description: descriptionTrim || null,
@@ -260,6 +327,8 @@ async function handleSubmit() {
       latitude: latitude.value ? Number(latitude.value) : null,
       longitude: longitude.value ? Number(longitude.value) : null,
     });
+
+    trip.value = updated; // sync state ทริป
 
     toast.success("แก้ไขทริปสำเร็จ 🎉");
     router.push({ name: "dashboard" });
@@ -282,5 +351,64 @@ async function handleSubmit() {
 
 function goBack() {
   router.push({ name: "dashboard" });
+}
+
+// เมื่อผู้ใช้เลือกไฟล์รูป
+function onFilesSelected(event: Event) {
+  uploadError.value = "";
+  const input = event.target as HTMLInputElement;
+  const files = input.files ? Array.from(input.files) : [];
+  uploadFiles.value = files;
+
+  if (!files.length) {
+    uploadError.value = "";
+  }
+}
+
+// กดปุ่มอัปโหลดรูปเพิ่ม
+async function handleUploadPhotos() {
+  if (!trip.value) return;
+
+  if (!uploadFiles.value.length) {
+    uploadError.value = "กรุณาเลือกรูปก่อนค่ะ";
+    toast.warning(uploadError.value);
+    return;
+  }
+
+  if (!auth.token) {
+    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    error.value = message;
+    toast.error(message);
+    goLoginExpired();
+    return;
+  }
+
+  try {
+    uploadingPhotos.value = true;
+    const updated = await uploadTripPhotos(tripId, auth.token, uploadFiles.value);
+    trip.value = updated;
+    uploadFiles.value = [];
+    uploadError.value = "";
+
+    // ล้าง input file จริง ๆ
+    if (fileInputRef.value) {
+      fileInputRef.value.value = "";
+    }
+
+    toast.success("อัปโหลดรูปสำเร็จแล้ว 🎉");
+  } catch (err: any) {
+    console.error(err);
+
+    if (err?.status === 401) {
+      goLoginExpired();
+      return;
+    }
+
+    const message = err.message || "อัปโหลดรูปไม่สำเร็จ";
+    uploadError.value = message;
+    toast.error(message);
+  } finally {
+    uploadingPhotos.value = false;
+  }
 }
 </script>

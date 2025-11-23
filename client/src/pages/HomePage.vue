@@ -20,7 +20,7 @@
       <!-- Filters -->
       <section
         v-if="status === 'success'"
-        class="mb-8 bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-4 flex flex-col gap-4"
+        class="mb-8 bg-white rounded-2xl border border-slate-200 shadow-sm px-3 sm:px-5 lg:px-6 py-4 sm:py-5 flex flex-col gap-4"
       >
         <!-- Province Filter -->
         <div class="flex items-center gap-3 text-xs sm:text-sm">
@@ -57,13 +57,16 @@
 
         <!-- Tag Filter -->
         <div class="flex flex-col gap-2 w-full">
-          <div class="flex items-center justify-between">
+          <!-- Header แท็ก + ปุ่มดูทั้งหมด -->
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+          >
             <span class="text-xs sm:text-sm text-gray-500">แท็ก:</span>
 
             <button
-              v-if="tags.length > TAG_LIMIT"
+              v-if="shouldShowToggle"
               type="button"
-              class="text-[11px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline whitespace-nowrap"
+              class="self-start sm:self-auto text-[11px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline whitespace-nowrap"
               @click="showAllTags = !showAllTags"
             >
               {{ showAllTags ? "ซ่อนแท็ก" : "ดูแท็กทั้งหมด" }}
@@ -72,12 +75,14 @@
 
           <!-- Tags Container -->
           <div class="relative w-full">
-            <!-- Mode: Horizontal Scroll -->
+            <!-- Mode: Horizontal Scroll (แสดงบางส่วน / มือถือ / จอเล็ก) -->
             <div
               v-if="!showAllTags"
-              class="overflow-x-auto no-scrollbar -mx-2 px-2"
+              class="overflow-x-auto no-scrollbar"
             >
-              <div class="flex gap-2 py-1 pr-6 w-max">
+              <div
+                class="flex gap-2 py-1 pl-2 pr-5 sm:pl-1 sm:pr-6 w-max"
+              >
                 <!-- ทั้งหมด -->
                 <button
                   type="button"
@@ -92,7 +97,7 @@
                   ทั้งหมด
                 </button>
 
-                <!-- Tags -->
+                <!-- Tags (แสดงแค่บางส่วน) -->
                 <button
                   v-for="tag in displayedTags"
                   :key="tag"
@@ -128,8 +133,9 @@
                 ทั้งหมด
               </button>
 
+              <!-- ในโหมดนี้ใช้ tags ทั้งหมด ไม่ตัด -->
               <button
-                v-for="tag in displayedTags"
+                v-for="tag in tags"
                 :key="tag"
                 type="button"
                 class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs whitespace-nowrap shadow-sm transition"
@@ -144,10 +150,10 @@
               </button>
             </div>
 
-            <!-- Gradient ด้านขวา (desktop เท่านั้น) -->
+            <!-- Gradient ด้านขวา (โชว์เฉพาะจอใหญ่ เมื่ออยู่โหมดเลื่อนแนวนอน) -->
             <div
               v-if="!showAllTags"
-              class="pointer-events-none hidden md:block absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white to-transparent"
+              class="pointer-events-none hidden md:block absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent"
             ></div>
           </div>
         </div>
@@ -179,7 +185,7 @@
           @addKeyword="handleAddKeyword"
         />
 
-        <!-- Load More: แสดงเฉพาะเมื่อมี >= page size และยังไม่ใช่ lastPage -->
+        <!-- Load More -->
         <div class="flex justify-center mt-6">
           <button
             v-if="filteredTrips.length >= size && !lastPage"
@@ -218,46 +224,43 @@ const trips = ref<Trip[]>([]);
 const status = ref<Status>("idle");
 const keyword = ref("");
 
-// สำหรับ ErrorState
 const errorMessage = ref("");
 
-// pagination
 const page = ref(0);
 const size = ref(6);
 const lastPage = ref(false);
 const loadingMore = ref(false);
 
-// filters
 const selectedProvince = ref<string>("");
 const selectedTag = ref<string>("");
 
-// options
 const provinces = ref<string[]>([]);
 const tags = ref<string[]>([]);
 
-// UI state
+// แสดงแท็กเต็มแค่จำนวนนี้ในโหมดเลื่อนแนวนอน
 const TAG_LIMIT = 12;
 const showAllTags = ref(false);
 
-// tags ที่แสดงบน UI
+// แท็กที่แสดงในโหมดเลื่อนแนวนอน
 const displayedTags = computed(() => {
-  return showAllTags.value ? tags.value : tags.value.slice(0, TAG_LIMIT);
+  return tags.value.slice(0, TAG_LIMIT);
 });
 
-// build filter options
+// ควรแสดงปุ่ม "ดูแท็กทั้งหมด" ไหม
+const shouldShowToggle = computed(() => {
+  return tags.value.length > TAG_LIMIT;
+});
+
 function buildFilterOptions(allTrips: Trip[]) {
   const provSet = new Set<string>();
   const tagSet = new Set<string>();
 
   for (const t of allTrips) {
-    if (t.province) {
-      provSet.add(t.province);
-    }
+    if (t.province) provSet.add(t.province);
+
     if (t.tags) {
       t.tags.forEach((tag) => {
-        if (tag && tag.trim().length > 0) {
-          tagSet.add(tag.trim());
-        }
+        if (tag && tag.trim().length > 0) tagSet.add(tag.trim());
       });
     }
   }
@@ -269,29 +272,25 @@ function buildFilterOptions(allTrips: Trip[]) {
     a.localeCompare(b, "th")
   );
 
+  // ถ้าแท็กน้อยกว่าเท่ากับ LIMIT จะไม่บังคับให้เปิดโหมด "ดูทั้งหมด"
   if (tags.value.length <= TAG_LIMIT) {
     showAllTags.value = false;
   }
 }
 
-// filter list
 const filteredTrips = computed(() => {
   return trips.value.filter((t) => {
-    if (selectedProvince.value && t.province !== selectedProvince.value) {
+    if (selectedProvince.value && t.province !== selectedProvince.value)
       return false;
-    }
 
     if (selectedTag.value) {
       const list = t.tags || [];
-      if (!list.includes(selectedTag.value)) {
-        return false;
-      }
+      if (!list.includes(selectedTag.value)) return false;
     }
     return true;
   });
 });
 
-// fetch trips
 async function fetchTrips(reset: boolean) {
   try {
     if (reset) {
@@ -314,15 +313,10 @@ async function fetchTrips(reset: boolean) {
     buildFilterOptions(trips.value);
     status.value = "success";
   } catch (err: any) {
-    console.error(err);
-    const message =
-      err?.message || "โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง";
-
+    const message = err?.message || "โหลดข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง";
     errorMessage.value = message;
 
-    if (reset) {
-      status.value = "error";
-    }
+    if (reset) status.value = "error";
 
     toast.error(message);
   } finally {
@@ -330,7 +324,6 @@ async function fetchTrips(reset: boolean) {
   }
 }
 
-// debounce keyword → ยิง request ใหม่
 useDebouncedEffect(
   () => {
     selectedProvince.value = "";
@@ -342,16 +335,13 @@ useDebouncedEffect(
   300
 );
 
-// first load
 onMounted(() => {
   fetchTrips(true);
 });
 
-// คลิกแท็กแล้วแทนค่าค้นหาเดิม ไม่ต่อท้าย
 function handleAddKeyword(tag: string) {
   keyword.value = tag;
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

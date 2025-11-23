@@ -36,7 +36,9 @@ export async function getTrips(
 /** ดึงทริปเดี่ยว */
 export async function getTripById(id: number): Promise<Trip> {
   const res = await fetch(`${API_BASE}/trips/${id}`);
-  if (!res.ok) throw buildError(`ไม่พบข้อมูลทริป (${res.status})`, res.status);
+  if (!res.ok) {
+    throw buildError(`ไม่พบข้อมูลทริป (${res.status})`, res.status);
+  }
   return (await res.json()) as Trip;
 }
 
@@ -170,4 +172,48 @@ export async function deleteTrip(id: number, token: string): Promise<void> {
   }
 
   if (!res.ok) throw buildError("ลบทริปไม่สำเร็จ", res.status);
+}
+
+/** อัปโหลดรูปทริปไปยัง Cloudinary ผ่าน backend */
+export async function uploadTripPhotos(
+  id: number,
+  token: string,
+  files: File[]
+): Promise<Trip> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    // ต้องชื่อ "files" ให้ตรงกับ @RequestParam("files") ใน TripController
+    formData.append("files", file);
+  });
+
+  const res = await fetch(`${API_BASE}/trips/${id}/photos`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // ไม่ต้องใส่ Content-Type เดี๋ยว browser ใส่ boundary ให้เอง
+    },
+    body: formData,
+  });
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    // ignore
+  }
+
+  if (res.status === 401) {
+    throw buildError(
+      "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+      401
+    );
+  }
+
+  if (!res.ok) {
+    const msg = data?.message || data?.error || "อัปโหลดรูปไม่สำเร็จ";
+    throw buildError(msg, res.status);
+  }
+
+  return data as Trip;
 }
