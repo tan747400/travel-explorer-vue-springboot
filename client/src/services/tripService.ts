@@ -36,7 +36,6 @@ async function handleAuthJson<T>(
   const data = await parseJsonSafe(res);
 
   if (res.status === 401) {
-    // token หาย / หมดอายุ
     throw buildError(
       "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
       401
@@ -63,7 +62,6 @@ async function handleAuthJson<T>(
 // Meta type
 // =========================
 
-// ใช้กับ endpoint /api/trips/meta
 export interface TripsMeta {
   provinces: string[];
   tags: string[];
@@ -162,7 +160,6 @@ export async function createTrip(
     body: JSON.stringify(payload),
   });
 
-  // ถ้า backend ส่ง message มาพิเศษ (เช่น duplicate, validation) จะถูกดึงใช้ใน handleAuthJson
   return handleAuthJson<Trip>(res, "บันทึกทริปไม่สำเร็จ");
 }
 
@@ -191,7 +188,6 @@ export async function deleteTrip(id: number, token: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  // ใช้ helper เดิม เพื่อให้ 401 / 403 ได้ message เดียวกัน
   await handleAuthJson<null>(res, "ลบทริปไม่สำเร็จ");
 }
 
@@ -203,7 +199,6 @@ export async function uploadTripPhotos(
 ): Promise<Trip> {
   const formData = new FormData();
   files.forEach((file) => {
-    // ต้องชื่อ "files" ให้ตรงกับ @RequestParam("files") ใน TripController
     formData.append("files", file);
   });
 
@@ -211,7 +206,6 @@ export async function uploadTripPhotos(
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      // ไม่ต้องใส่ Content-Type เดี๋ยว browser ใส่ boundary ให้เอง
     },
     body: formData,
   });
@@ -219,7 +213,7 @@ export async function uploadTripPhotos(
   return handleAuthJson<Trip>(res, "อัปโหลดรูปไม่สำเร็จ");
 }
 
-/** ลบรูปเดิมออกจากทริป */
+/** ลบรูปเดิมออกจากทริป (ส่ง imageUrl เป็น JSON body) */
 export async function deleteTripPhoto(
   id: number,
   imageUrl: string,
@@ -234,6 +228,5 @@ export async function deleteTripPhoto(
     body: JSON.stringify({ imageUrl }),
   });
 
-  // backend จะคืน TripResponse ตัวล่าสุดกลับมา
   return handleAuthJson<Trip>(res, "ลบรูปไม่สำเร็จ");
 }
