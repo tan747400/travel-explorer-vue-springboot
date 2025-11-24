@@ -186,6 +186,7 @@ public class TripController {
 
     // =======================================
     //   POST /api/trips/{id}/photos
+    //   อัปโหลดรูปเพิ่มในทริป
     // =======================================
     @PostMapping(
             value = "/{id}/photos",
@@ -224,6 +225,48 @@ public class TripController {
             if ("Trip not found".equals(e.getMessage()))
                 return ResponseEntity.notFound().build();
             throw e;
+        }
+    }
+
+    // =======================================
+    //   DELETE /api/trips/{id}/photos?url=...
+    //   ลบรูปเดิมที่อัปโหลดในทริป
+    // =======================================
+    @DeleteMapping("/{id}/photos")
+    public ResponseEntity<TripResponse> deleteTripPhoto(
+            @PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String authHeader,
+            @RequestParam("url") String photoUrl
+    ) {
+        if (photoUrl == null || photoUrl.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (authHeader == null || !authHeader.startsWith("Bearer "))
+            return ResponseEntity.status(401).build();
+
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) return ResponseEntity.status(401).build();
+
+        String email;
+        try {
+            email = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).build();
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return ResponseEntity.status(401).build();
+
+        try {
+          TripResponse updated = tripService.deleteTripPhoto(id, photoUrl, user);
+          return ResponseEntity.ok(updated);
+        } catch (ForbiddenException e) {
+          return ResponseEntity.status(403).build();
+        } catch (RuntimeException e) {
+          if ("Trip not found".equals(e.getMessage()))
+            return ResponseEntity.notFound().build();
+          throw e;
         }
     }
 }

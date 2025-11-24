@@ -47,13 +47,8 @@ public class TripService {
             }
         }
 
-        List<String> provinces = provSet.stream()
-                .sorted()
-                .collect(Collectors.toList());
-
-        List<String> tags = tagSet.stream()
-                .sorted()
-                .collect(Collectors.toList());
+        List<String> provinces = provSet.stream().sorted().collect(Collectors.toList());
+        List<String> tags = tagSet.stream().sorted().collect(Collectors.toList());
 
         return TripMetaResponse.builder()
                 .provinces(provinces)
@@ -140,6 +135,9 @@ public class TripService {
         tripRepository.delete(trip);
     }
 
+    // ======================================
+    //   Upload Trip Photos
+    // ======================================
     public TripResponse uploadTripPhotos(Long id, List<MultipartFile> files, User currentUser) {
 
         Trip trip = tripRepository.findById(id)
@@ -168,6 +166,41 @@ public class TripService {
         return toResponse(saved);
     }
 
+    // ======================================
+    //   NEW: Delete Photo from Trip
+    // ======================================
+    public TripResponse deleteTripPhoto(Long id, String photoUrl, User currentUser) {
+
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Trip not found"));
+
+        if (!trip.getAuthor().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("You are not allowed to delete photos of this trip");
+        }
+
+        List<String> photos = trip.getPhotos();
+        if (photos == null || photos.isEmpty()) {
+            throw new RuntimeException("No photos to delete");
+        }
+
+        // ลบจาก Storage
+        boolean deleted = imageUploadService.deleteImage(photoUrl);
+        if (!deleted) {
+            throw new RuntimeException("Failed to delete image from storage");
+        }
+
+        // ลบออกจาก List
+        photos.removeIf(url -> url.equals(photoUrl));
+        trip.setPhotos(photos);
+
+        Trip saved = tripRepository.save(trip);
+
+        return toResponse(saved);
+    }
+
+    // ======================================
+    //   Convert Entity → Response
+    // ======================================
     private TripResponse toResponse(Trip t) {
         return TripResponse.builder()
                 .id(t.getId())
