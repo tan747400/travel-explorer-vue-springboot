@@ -18,8 +18,8 @@
         </button>
       </div>
 
-      <!-- Loading -->
-      <Loading v-if="loading" />
+      <!-- Loading: ใช้ Skeleton -->
+      <DashboardSkeleton v-if="loading" />
 
       <!-- Error -->
       <ErrorState
@@ -187,6 +187,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+
 import { useAuthStore } from "@/stores/authStore";
 import type { Trip } from "@/types/trip";
 import {
@@ -194,12 +195,12 @@ import {
   getMyTrips,
 } from "@/services/tripService";
 
-import Loading from "@/components/state/Loading.vue";
 import ErrorState from "@/components/state/ErrorState.vue";
+import DashboardSkeleton from "@/components/state/DashboardSkeleton.vue";
 
 import { useToast } from "vue-toastification";
-const toast = useToast();
 
+const toast = useToast();
 const auth = useAuthStore();
 const router = useRouter();
 
@@ -208,7 +209,7 @@ const loading = ref(false);
 const error = ref("");
 const deletingId = ref<number | null>(null);
 
-// state สำหรับ popup ลบทริป
+// popup ลบทริป
 const showDeleteModal = ref(false);
 const tripToDelete = ref<number | null>(null);
 

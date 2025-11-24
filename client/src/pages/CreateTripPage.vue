@@ -17,162 +17,183 @@
       </div>
 
       <p class="text-gray-600 mb-6 text-sm">
-        กรอกข้อมูลสถานที่เที่ยวที่คุณอยากแชร์ แล้วกดบันทึก ระบบจะบันทึกทริปนี้ไว้ใน
-        Dashboard ของคุณ
+        กรอกข้อมูลสถานที่เที่ยวที่คุณอยากแชร์ แล้วกดบันทึก
+        ระบบจะบันทึกทริปนี้ไว้ใน Dashboard ของคุณ
       </p>
 
-      <!-- ฟอร์มสร้างทริป -->
-      <form class="space-y-4" @submit.prevent="handleSubmit">
-        <!-- Title -->
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            ชื่อทริป / สถานที่<span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="title"
-            type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="เช่น เที่ยวเชียงใหม่หน้าหนาว"
-            required
-          />
-        </div>
-
-        <!-- Places -->
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            สถานที่<span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="province"
-            type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="เช่น เชียงใหม่ ฟินแลนด์"
-            required
-          />
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            รายละเอียดทริป
-          </label>
-          <textarea
-            v-model="description"
-            rows="4"
-            class="w-full border rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="เล่าบรรยากาศ สถานที่ที่แนะนำ ไฮไลต์ของทริปนี้ ฯลฯ"
-          />
-          <p class="text-xs text-gray-400 mt-1">(ไม่เกิน 1000 ตัวอักษร)</p>
-        </div>
-
-        <!-- Tags -->
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            แท็ก (คั่นด้วยเครื่องหมายจุลภาค ,)
-          </label>
-          <input
-            v-model="tagsInput"
-            type="text"
-            class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="เช่น ธรรมชาติ, ภูเขา, หน้าหนาว"
-          />
-          <p class="text-xs text-gray-400 mt-1">
-            ใช้สำหรับค้นหา / แสดงเป็นป้ายกำกับ เช่น “ทะเล”, “ธรรมชาติ”
-          </p>
-        </div>
-
-        <!-- Latitude / Longitude -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Card ฟอร์ม / Skeleton ตอนกำลังบันทึก -->
+      <section
+        v-if="!loading"
+        class="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 sm:px-6 py-5"
+      >
+        <!-- ฟอร์มสร้างทริป -->
+        <form class="space-y-4" @submit.prevent="handleSubmit">
+          <!-- Title -->
           <div>
             <label class="block text-sm font-medium mb-1">
-              Latitude
+              ชื่อทริป / สถานที่<span class="text-red-500">*</span>
             </label>
             <input
-              v-model="latitude"
-              type="number"
-              step="0.000001"
+              v-model="title"
+              type="text"
               class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              placeholder="เช่น 66.5039"
+              placeholder="เช่น เที่ยวเชียงใหม่หน้าหนาว"
+              required
             />
           </div>
 
+          <!-- Province -->
           <div>
             <label class="block text-sm font-medium mb-1">
-              Longitude
+              สถานที่<span class="text-red-500">*</span>
             </label>
             <input
-              v-model="longitude"
-              type="number"
-              step="0.000001"
+              v-model="province"
+              type="text"
               class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-              placeholder="เช่น 25.7294"
+              placeholder="เช่น เชียงใหม่ ฟินแลนด์"
+              required
             />
           </div>
-        </div>
 
-        <!-- รูปภาพทริป -->
-        <div>
-          <label class="block text-sm font-medium mb-1">
-            รูปภาพทริป (อัปโหลดได้หลายรูป, ไม่บังคับ)
-          </label>
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              รายละเอียดทริป
+            </label>
+            <textarea
+              v-model="description"
+              rows="4"
+              maxlength="1000"
+              class="w-full border rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="เล่าบรรยากาศ สถานที่ที่แนะนำ ไฮไลต์ของทริปนี้ ฯลฯ"
+            />
+            <div class="mt-1 flex items-center justify-between">
+              <p class="text-xs text-gray-400">
+                (ไม่เกิน 1000 ตัวอักษร)
+              </p>
+              <p class="text-[11px] text-gray-400">
+                {{ description.length }}/1000
+              </p>
+            </div>
+          </div>
 
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4
-                   file:rounded-md file:border-0 file:text-sm file:font-medium
-                   file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
-            @change="handleFilesChange"
-          />
+          <!-- Tags -->
+          <div>
+            <label class="block text-sm font-medium mb-1">
+              แท็ก (คั่นด้วยเครื่องหมายจุลภาค ,)
+            </label>
+            <input
+              v-model="tagsInput"
+              type="text"
+              class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="เช่น ธรรมชาติ, ภูเขา, หน้าหนาว"
+            />
+            <p class="text-xs text-gray-400 mt-1">
+              ใช้สำหรับค้นหา / แสดงเป็นป้ายกำกับ เช่น “ทะเล”, “ธรรมชาติ”
+              (ไม่เกิน 10 แท็ก แต่ละแท็กไม่เกิน 30 ตัวอักษร)
+            </p>
+          </div>
 
-          <p class="text-xs text-gray-400 mt-1">
-            รองรับไฟล์รูปภาพทั่วไป เช่น .jpg, .png, .webp
-          </p>
+          <!-- Lat / Lng -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Latitude
+              </label>
+              <input
+                v-model="latitude"
+                type="number"
+                step="0.000001"
+                class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+                placeholder="เช่น 66.5039"
+              />
+            </div>
 
-          <!-- Preview -->
-          <div
-            v-if="previewUrls.length > 0"
-            class="mt-3 grid grid-cols-3 gap-2"
-          >
-            <div
-              v-for="(url, idx) in previewUrls"
-              :key="idx"
-              class="relative"
-            >
-              <img
-                :src="url"
-                alt="preview"
-                class="h-24 w-full rounded-md object-cover border"
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                Longitude
+              </label>
+              <input
+                v-model="longitude"
+                type="number"
+                step="0.000001"
+                class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
+                placeholder="เช่น 25.7294"
               />
             </div>
           </div>
-        </div>
 
-        <!-- Error message -->
-        <p v-if="error" class="text-sm text-red-500">
-          {{ error }}
-        </p>
+          <!-- รูปภาพทริป -->
+          <div class="pt-1">
+            <label class="block text-sm font-medium mb-1">
+              รูปภาพทริป (อัปโหลดได้หลายรูป, ไม่บังคับ)
+            </label>
 
-        <!-- Actions -->
-        <div class="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            :disabled="loading"
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4
+                     file:rounded-md file:border-0 file:text-sm file:font-medium
+                     file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+              @change="handleFilesChange"
+            />
+
+            <p class="text-xs text-gray-400 mt-1">
+              รองรับไฟล์รูปภาพทั่วไป เช่น .jpg, .png, .webp
+            </p>
+
+            <!-- Preview -->
+            <div
+              v-if="previewUrls.length > 0"
+              class="mt-3 grid grid-cols-3 gap-2"
+            >
+              <div
+                v-for="(url, idx) in previewUrls"
+                :key="idx"
+                class="relative"
+              >
+                <img
+                  :src="url"
+                  alt="preview"
+                  class="h-24 w-full rounded-md object-cover border"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div
+            v-if="error"
+            class="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"
           >
-            {{ loading ? "กำลังบันทึก..." : "บันทึกทริป" }}
-          </button>
+            {{ error }}
+          </div>
 
-          <button
-            type="button"
-            class="px-4 py-2 rounded-md border text-sm text-gray-600 hover:bg-gray-50"
-            @click="goBack"
-          >
-            ยกเลิก
-          </button>
-        </div>
-      </form>
+          <!-- Actions -->
+          <div class="flex items-center gap-3 pt-2">
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="loading"
+            >
+              {{ loading ? "กำลังบันทึก..." : "บันทึกทริป" }}
+            </button>
+
+            <button
+              type="button"
+              class="px-4 py-2 rounded-md border text-sm text-gray-600 hover:bg-gray-50"
+              @click="goBack"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Skeleton ตอนกำลังบันทึก -->
+      <CreateTripSkeleton v-else />
     </div>
   </div>
 </template>
@@ -180,6 +201,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
+
 import { useAuthStore } from "@/stores/authStore";
 import {
   createTrip,
@@ -187,10 +209,10 @@ import {
   type TripPayload,
 } from "@/services/tripService";
 
-// Toast
 import { useToast } from "vue-toastification";
-const toast = useToast();
+import CreateTripSkeleton from "@/components/state/CreateTripSkeleton.vue";
 
+const toast = useToast();
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -198,7 +220,7 @@ const title = ref("");
 const province = ref("");
 const description = ref("");
 
-// new fields
+// tags / lat / lng
 const tagsInput = ref("");
 const latitude = ref("");
 const longitude = ref("");
@@ -210,7 +232,7 @@ const previewUrls = ref<string[]>([]);
 const loading = ref(false);
 const error = ref("");
 
-// ---------- helper: จัดการ preview URLs ----------
+// helper: จัดการ preview URLs
 function clearPreviews() {
   previewUrls.value.forEach((url) => URL.revokeObjectURL(url));
   previewUrls.value = [];
@@ -233,7 +255,7 @@ onBeforeUnmount(() => {
   clearPreviews();
 });
 
-// ฟังก์ชันรวมสำหรับ token หมดอายุ
+// token หมดอายุ
 function goLoginExpired() {
   auth.logout();
   toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
@@ -247,7 +269,7 @@ function goLoginExpired() {
   });
 }
 
-// validation พื้นฐาน
+// validation
 function validateForm(): boolean {
   const titleTrim = title.value.trim();
   const provinceTrim = province.value.trim();
@@ -270,6 +292,27 @@ function validateForm(): boolean {
     error.value = msg;
     toast.warning(msg);
     return false;
+  }
+
+  if (tagsInput.value.trim()) {
+    const rawTags = tagsInput.value
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    if (rawTags.length > 10) {
+      const msg = "แท็กต้องไม่เกิน 10 แท็ก";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
+
+    if (rawTags.some((t) => t.length > 30)) {
+      const msg = "แต่ละแท็กต้องไม่เกิน 30 ตัวอักษร";
+      error.value = msg;
+      toast.warning(msg);
+      return false;
+    }
   }
 
   if (latitude.value) {
@@ -333,22 +376,20 @@ async function handleSubmit() {
   loading.value = true;
 
   try {
-    // 1) สร้างทริปหลักก่อน
+    // 1) สร้างทริป
     const trip = await createTrip(auth.token, payload);
 
-    // 2) ถ้ามีรูป → อัปโหลดรูปต่อ
+    // 2) อัปโหลดรูป ถ้ามี
     if (selectedFiles.value.length > 0) {
       try {
         await uploadTripPhotos(trip.id, auth.token, selectedFiles.value);
       } catch (uploadErr: any) {
         console.error(uploadErr);
-        // ถ้าอัปโหลดรูปพลาด แต่สร้างทริปสำเร็จแล้ว → แจ้งเตือนแยก
         toast.warning("บันทึกทริปแล้ว แต่บางรูปอัปโหลดไม่สำเร็จ");
       }
     }
 
     toast.success("บันทึกทริปเรียบร้อยแล้ว 🎉");
-
     router.push({ name: "dashboard" });
   } catch (err: any) {
     console.error(err);

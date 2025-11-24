@@ -1,176 +1,294 @@
 <template>
-  <!-- มีทริป -->
-  <div class="max-w-6xl mx-auto px-4 py-10" v-if="trip">
-    <!-- Header -->
-    <header
-      class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-2"
-    >
-      <div>
-        <h1 class="text-3xl md:text-4xl font-bold mb-1">
-          {{ trip.title }}
-        </h1>
+  <div class="min-h-screen bg-slate-50">
+    <div class="max-w-6xl mx-auto px-4 py-10">
+      <!-- Loading: ใช้ Skeleton -->
+      <TripDetailSkeleton v-if="loading" />
 
-        <p class="text-sky-700 text-sm">
-          {{ trip.province || "ไม่ระบุสถานที่" }}
-        </p>
+      <!-- Error -->
+      <ErrorState v-else-if="error" :message="error" />
 
-        <p class="text-xs text-gray-500 mt-1">
-          สร้างโดย: {{ trip.authorName || "-" }}
-        </p>
-      </div>
-    </header>
+      <!-- ไม่พบ -->
+      <EmptyState
+        v-else-if="!trip"
+        message="ไม่พบทริปที่คุณต้องการแสดง"
+      />
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Photos -->
-      <section class="lg:col-span-2 space-y-4">
-        <!-- Main Image -->
-        <div
-          v-if="trip.photos && trip.photos.length > 0"
-          class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
+      <!-- Content -->
+      <div v-else>
+        <!-- Header -->
+        <header
+          class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-3"
         >
-          <img
-            :src="currentMainImage"
-            :alt="trip.title"
-            class="h-full w-full object-cover"
-          />
-        </div>
-        <div
-          v-else
-          class="aspect-[16/9] rounded-2xl bg-slate-100 flex items-center justify-center text-gray-400 text-sm"
-        >
-          ยังไม่มีรูปภาพสำหรับทริปนี้
-        </div>
+          <div>
+            <h1 class="text-3xl md:text-4xl font-bold mb-1">
+              {{ trip.title }}
+            </h1>
 
-        <!-- Thumbnail Images -->
-        <div
-          v-if="trip.photos && trip.photos.length > 1"
-          class="grid grid-cols-3 gap-2"
-        >
-          <button
-            v-for="(p, idx) in trip.photos"
-            :key="idx"
-            type="button"
-            class="relative group aspect-[4/3] w-full overflow-hidden rounded-lg bg-slate-100"
-            @click="selectPhoto(idx)"
-          >
-            <img
-              :src="p"
-              :alt="`photo-${idx}`"
-              class="w-full h-full object-contain object-center transition-opacity"
-              :class="
-                idx === mainImageIndex
-                  ? 'opacity-100'
-                  : 'opacity-80 group-hover:opacity-100'
-              "
-            />
-            <span
-              v-if="idx === mainImageIndex"
-              class="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-sky-500"
-            ></span>
-          </button>
-        </div>
-      </section>
+            <p class="text-sky-700 text-sm">
+              {{ trip.province || "ไม่ระบุสถานที่" }}
+            </p>
 
-      <!-- Map Section -->
-      <aside class="space-y-3">
-        <h2 class="font-semibold mb-1">แผนที่</h2>
-
-        <div v-if="hasLocation" class="rounded-xl overflow-hidden border bg-white">
-          <iframe
-            :src="mapEmbedUrl"
-            width="100%"
-            height="260"
-            style="border:0;"
-            allowfullscreen
-            loading="lazy"
-          ></iframe>
-
-          <div class="p-3 border-t text-right">
-            <a
-              :href="mapExternalUrl"
-              target="_blank"
-              class="text-xs text-sky-600 hover:underline"
-            >
-              View on Google Maps
-            </a>
+            <p class="text-xs text-gray-500 mt-1">
+              สร้างโดย: {{ trip.authorName || "-" }}
+            </p>
           </div>
+
+          <div class="flex flex-col items-end gap-2">
+            <!-- ปุ่มกลับ (ฉลาด: ถ้ามี query แสดง "กลับไปผลการค้นหาเดิม") -->
+            <button
+              type="button"
+              class="text-sm text-slate-600 hover:underline"
+              @click="goBackSmart"
+            >
+              {{ hasSearchQuery ? "← กลับไปผลการค้นหาเดิม" : "← กลับหน้าหลัก" }}
+            </button>
+
+            <!-- ปุ่มจัดการทริป (เฉพาะเจ้าของเท่านั้น) -->
+            <div
+              v-if="isOwner"
+              class="flex items-center gap-2"
+            >
+              <button
+                type="button"
+                class="px-3 py-1 rounded-md border border-amber-300 text-xs md:text-sm
+                       text-amber-700 bg-amber-50 hover:bg-amber-100"
+                @click="goEdit"
+              >
+                แก้ไขทริป
+              </button>
+
+              <button
+                type="button"
+                class="px-3 py-1 rounded-md border border-red-200 text-xs md:text-sm
+                       text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="deleting"
+                @click="openDeleteModal"
+              >
+                {{ deleting ? "กำลังลบ..." : "ลบทริป" }}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Photos -->
+          <section class="lg:col-span-2 space-y-4">
+            <!-- Main Image -->
+            <div
+              v-if="trip.photos && trip.photos.length > 0"
+              class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
+            >
+              <img
+                :src="currentMainImage"
+                :alt="trip.title"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <div
+              v-else
+              class="aspect-[16/9] rounded-2xl bg-slate-100 flex items-center justify-center text-gray-400 text-sm"
+            >
+              ยังไม่มีรูปภาพสำหรับทริปนี้
+            </div>
+
+            <!-- Thumbnails -->
+            <div
+              v-if="trip.photos && trip.photos.length > 1"
+              class="grid grid-cols-3 gap-2"
+            >
+              <button
+                v-for="(p, idx) in trip.photos"
+                :key="idx"
+                type="button"
+                class="relative group aspect-[4/3] w-full overflow-hidden rounded-lg bg-slate-100"
+                @click="selectPhoto(idx)"
+              >
+                <img
+                  :src="p"
+                  :alt="`photo-${idx}`"
+                  class="w-full h-full object-cover transition-opacity"
+                  :class="
+                    idx === mainImageIndex
+                      ? 'opacity-100'
+                      : 'opacity-80 group-hover:opacity-100'
+                  "
+                />
+                <span
+                  v-if="idx === mainImageIndex"
+                  class="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-sky-500"
+                ></span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Map -->
+          <aside class="space-y-3">
+            <h2 class="font-semibold mb-1">แผนที่</h2>
+
+            <div
+              v-if="hasLocation"
+              class="rounded-xl overflow-hidden border bg-white"
+            >
+              <iframe
+                :src="mapEmbedUrl"
+                width="100%"
+                height="260"
+                style="border:0;"
+                allowfullscreen
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+
+              <div class="p-3 border-t text-right">
+                <a
+                  :href="mapExternalUrl"
+                  target="_blank"
+                  class="text-xs text-sky-600 hover:underline"
+                >
+                  เปิดใน Google Maps ↗
+                </a>
+              </div>
+            </div>
+
+            <p v-else class="text-sm text-gray-500">
+              ยังไม่มีข้อมูลพิกัดของสถานที่นี้
+            </p>
+          </aside>
         </div>
 
-        <p v-else class="text-sm text-gray-500">
-          ยังไม่มีข้อมูลพิกัดของสถานที่นี้
-        </p>
-      </aside>
+        <!-- Description & Tags -->
+        <section class="mt-8 space-y-3">
+          <h2 class="font-semibold text-lg">รายละเอียดสถานที่</h2>
+          <p class="text-sm text-gray-700 leading-relaxed">
+            {{ trip.description || "ยังไม่มีรายละเอียดของทริปนี้" }}
+          </p>
+
+          <div
+            v-if="trip.tags && trip.tags.length > 0"
+            class="mt-4 flex flex-wrap gap-2"
+          >
+            <span
+              v-for="tag in trip.tags"
+              :key="tag"
+              class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
+            >
+              #{{ tag }}
+            </span>
+          </div>
+        </section>
+      </div>
     </div>
 
-    <!-- Description & Tags -->
-    <section class="mt-8 space-y-3">
-      <h2 class="font-semibold text-lg">รายละเอียดสถานที่</h2>
-      <p class="text-sm text-gray-700">
-        {{ trip.description || "ยังไม่มีรายละเอียดของทริปนี้" }}
-      </p>
-
+    <!-- Popup ลบทริป -->
+    <Transition name="fade">
       <div
-        v-if="trip.tags && trip.tags.length > 0"
-        class="mt-4 flex flex-wrap gap-2"
+        v-if="showDeleteModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
       >
-        <span
-          v-for="tag in trip.tags"
-          :key="tag"
-          class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs text-sky-700"
-        >
-          #{{ tag }}
-        </span>
+        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <h3 class="text-lg font-semibold text-slate-800 text-center">
+            ต้องการลบทริปนี้จริง ๆ ไหม?
+          </h3>
+          <p class="mt-2 text-sm text-slate-500 text-center">
+            การลบจะไม่สามารถกู้คืนได้
+          </p>
+
+          <div class="mt-6 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg border text-slate-600 hover:bg-slate-50"
+              @click="closeDeleteModal"
+            >
+              ยกเลิก
+            </button>
+
+            <button
+              type="button"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="deleting"
+              @click="confirmDeleteModal"
+            >
+              ลบทริป
+            </button>
+          </div>
+        </div>
       </div>
-    </section>
-  </div>
-
-  <!-- Loading / Error / Not found -->
-  <div class="max-w-6xl mx-auto px-4 py-10" v-else>
-    <Loading v-if="loading" />
-
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-    />
-
-    <EmptyState
-      v-else
-      message="ไม่พบทริปที่คุณต้องการแสดง"
-    />
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
-import type { Trip } from "@/types/trip";
-import { getTripById } from "@/services/tripService";
+import { useRoute, useRouter } from "vue-router";
 
-// state components
-import Loading from "@/components/state/Loading.vue";
+import type { Trip } from "@/types/trip";
+import { getTripById, deleteTrip } from "@/services/tripService";
+
+import TripDetailSkeleton from "@/components/state/TripDetailSkeleton.vue";
 import ErrorState from "@/components/state/ErrorState.vue";
 import EmptyState from "@/components/state/EmptyState.vue";
 
-// Toast
+import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
-const toast = useToast();
 
+const toast = useToast();
+const auth = useAuthStore();
 const route = useRoute();
+const router = useRouter();
 
 const trip = ref<Trip | null>(null);
 const loading = ref(false);
 const error = ref("");
 
 const mainImageIndex = ref(0);
+const deleting = ref(false);
+
+// popup ลบ
+const showDeleteModal = ref(false);
+
+/**
+ * query สำหรับ back-to-search (เก็บแค่แบบ string ที่จำเป็น)
+ */
+const searchQueryForBack = computed(() => {
+  const { keyword, province, tag } = route.query;
+  const q: Record<string, string> = {};
+
+  if (typeof keyword === "string" && keyword.trim()) {
+    q.keyword = keyword.trim();
+  }
+  if (typeof province === "string" && province) {
+    q.province = province;
+  }
+  if (typeof tag === "string" && tag) {
+    q.tag = tag;
+  }
+
+  return q;
+});
+
+// มี query การค้นหามั้ย (ใช้ตัดสินใจข้อความปุ่มย้อนกลับ)
+const hasSearchQuery = computed(
+  () => Object.keys(searchQueryForBack.value).length > 0
+);
 
 const currentMainImage = computed(() => {
   if (!trip.value?.photos?.length) return "";
   return trip.value.photos[mainImageIndex.value] ?? trip.value.photos[0];
 });
 
-const hasLocation = computed(
-  () => trip.value?.latitude != null && trip.value?.longitude != null
-);
+const hasLocation = computed(() => {
+  if (!trip.value) return false;
+  const lat = trip.value.latitude;
+  const lng = trip.value.longitude;
+  return (
+    lat !== null &&
+    lng !== null &&
+    lat !== undefined &&
+    lng !== undefined &&
+    !Number.isNaN(Number(lat)) &&
+    !Number.isNaN(Number(lng))
+  );
+});
 
 const mapEmbedUrl = computed(() => {
   if (!hasLocation.value || !trip.value) return "";
@@ -184,32 +302,137 @@ const mapExternalUrl = computed(() => {
   return `https://www.google.com/maps?q=${latitude},${longitude}`;
 });
 
+/* เป็นเจ้าของทริปไหม */
+const isOwner = computed(() => {
+  if (!trip.value || !auth.user) return false;
+
+  const authorId = (trip.value as any).authorId;
+  const userId = auth.user.userId;
+
+  const byId = typeof authorId === "number" && authorId === userId;
+
+  const byName =
+    trip.value.authorName &&
+    auth.user.displayName &&
+    trip.value.authorName === auth.user.displayName;
+
+  return byId || byName;
+});
+
 function selectPhoto(idx: number) {
   if (!trip.value?.photos) return;
-  if (idx < 0 || idx >= trip.value.photos.length) return;
   mainImageIndex.value = idx;
 }
 
+/**
+ * ปุ่มกลับแบบฉลาด:
+ * - ถ้ามี keyword/province/tag ใน query → กลับไปหน้า Home พร้อม query เดิม (back-to-search)
+ * - ถ้าไม่มี → ถ้ามี history ให้ router.back() / ไม่มีก็พาไปหน้า Home
+ */
+function goBackSmart() {
+  if (hasSearchQuery.value) {
+    router.push({
+      name: "home",
+      query: searchQueryForBack.value,
+    });
+    return;
+  }
+
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push({ name: "home" });
+  }
+}
+
+function goEdit() {
+  if (!trip.value) return;
+  router.push({ name: "trip-edit", params: { id: trip.value.id } });
+}
+
+function goLoginExpired() {
+  auth.logout();
+  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+  router.push({
+    name: "login",
+    query: { expired: "1", redirect: router.currentRoute.value.fullPath },
+  });
+}
+
+/* popup ลบ */
+function openDeleteModal() {
+  if (!isOwner.value) return;
+  showDeleteModal.value = true;
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false;
+}
+
+async function confirmDeleteModal() {
+  if (!trip.value) return;
+
+  if (!auth.token) {
+    toast.error("ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    goLoginExpired();
+    return;
+  }
+
+  try {
+    deleting.value = true;
+    await deleteTrip(trip.value.id, auth.token);
+    toast.success("ลบทริปสำเร็จแล้ว 🗑️");
+    router.push({ name: "dashboard" });
+  } catch (err: any) {
+    console.error(err);
+
+    if (err?.status === 401) {
+      goLoginExpired();
+      return;
+    }
+    if (err?.status === 403) {
+      toast.error("คุณไม่สามารถลบทริปของคนอื่นได้");
+      return;
+    }
+
+    toast.error(err.message || "ลบทริปไม่สำเร็จ");
+  } finally {
+    deleting.value = false;
+    closeDeleteModal();
+  }
+}
+
+/* โหลดข้อมูลทริป */
 async function loadTrip() {
   loading.value = true;
   error.value = "";
+
   try {
     const id = Number(route.params.id);
     trip.value = await getTripById(id);
     mainImageIndex.value = 0;
-
-    if (!trip.value) {
-      error.value = "";
-    }
   } catch (err: any) {
     console.error(err);
-    const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
-    error.value = message;
-    toast.error(message);
+    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    toast.error(error.value);
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(loadTrip);
+onMounted(() => {
+  window.scrollTo({ top: 0, behavior: "auto" });
+  loadTrip();
+});
 </script>
+
+<style>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

@@ -13,10 +13,8 @@
           v-if="sessionExpired"
           class="relative overflow-hidden rounded-xl border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm flex items-start gap-3 shadow-sm"
         >
-          <!-- decorative bar -->
           <div class="w-1 bg-amber-400 rounded-full"></div>
 
-          <!-- icon + text -->
           <div class="flex-1">
             <p class="font-semibold mb-0.5">เซสชั่นหมดอายุแล้ว</p>
             <p class="text-xs leading-snug">
@@ -25,15 +23,36 @@
             </p>
           </div>
 
-          <!-- shine effect -->
           <span
             class="pointer-events-none absolute -right-6 top-0 h-full w-12 bg-gradient-to-l from-white/80 via-white/40 to-transparent opacity-0 banner-shine"
           />
         </div>
       </transition>
 
-      <!-- Form -->
-      <form class="space-y-4" @submit.prevent="handleSubmit">
+      <!-- Registered Success Banner -->
+      <transition name="fade-slide">
+        <div
+          v-if="registeredSuccess"
+          class="relative overflow-hidden rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm flex items-start gap-3 shadow-sm"
+        >
+          <div class="w-1 bg-emerald-400 rounded-full"></div>
+
+          <div class="flex-1">
+            <p class="font-semibold mb-0.5">สมัครสมาชิกสำเร็จแล้ว</p>
+            <p class="text-xs leading-snug">
+              กรุณาเข้าสู่ระบบด้วยอีเมลและรหัสผ่านที่คุณสมัครไว้
+            </p>
+          </div>
+
+          <span
+            class="pointer-events-none absolute -right-6 top-0 h-full w-12 bg-gradient-to-l from-white/80 via-white/40 to-transparent opacity-0 banner-shine"
+          />
+        </div>
+      </transition>
+
+      <!-- Form / Skeleton -->
+      <LoginSkeleton v-if="loading" />
+      <form v-else class="space-y-4" @submit.prevent="handleSubmit">
         <div>
           <label class="block text-sm mb-1 text-slate-700">อีเมล</label>
           <input
@@ -63,7 +82,7 @@
           class="w-full bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed transition"
           :disabled="loading"
         >
-          {{ loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ" }}
+          เข้าสู่ระบบ
         </button>
       </form>
     </div>
@@ -76,6 +95,7 @@ import { useRoute, useRouter } from "vue-router";
 import { login } from "@/services/authService";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
+import LoginSkeleton from "@/components/state/LoginSkeleton.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -87,12 +107,22 @@ const password = ref("");
 const loading = ref(false);
 const error = ref("");
 
-// detect ?expired=1
+// detect ?expired=1, ?registered=1
 const sessionExpired = computed(() => route.query.expired === "1");
+const registeredSuccess = computed(() => route.query.registered === "1");
 
 onMounted(() => {
   if (sessionExpired.value) {
     toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+  }
+
+  if (registeredSuccess.value) {
+    toast.success("สมัครสมาชิกสำเร็จแล้ว กรุณาเข้าสู่ระบบ");
+  }
+
+  // ถ้า login อยู่แล้วและไม่มี redirect พิเศษ → ส่งกลับหน้าแรก
+  if (auth.isLoggedIn && !route.query.redirect) {
+    router.push({ name: "home" });
   }
 });
 
@@ -109,14 +139,11 @@ async function handleSubmit() {
 
   try {
     const res = (await login({
-      email: email.value,
+      email: email.value.trim(),
       password: password.value,
     })) as AuthResponse;
 
-    auth.login(res.token, {
-      email: res.email,
-      displayName: res.displayName,
-    });
+    auth.setAuth(res);
 
     toast.success("เข้าสู่ระบบสำเร็จ 🎉");
 
@@ -142,7 +169,6 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-/* fade-slide animation */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.25s ease-out;

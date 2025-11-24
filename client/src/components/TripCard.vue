@@ -1,76 +1,109 @@
 <template>
-  <div
-    class="relative flex flex-col md:flex-row items-start gap-4 p-4 shadow-sm hover:shadow-md transition bg-white rounded-3xl"
+  <article
+    class="relative group flex flex-col md:flex-row items-start gap-4 p-4 md:p-5
+           bg-white rounded-3xl border border-slate-200 shadow-sm
+           hover:shadow-md hover:border-sky-200 transition-colors"
   >
     <!-- รูปหลัก -->
-    <img
-      v-if="props.item.photos?.[0]"
-      class="rounded-3xl w-full md:w-[350px] h-[250px] object-cover order-1"
-      :src="props.item.photos[0]"
-      :alt="props.item.title"
-    />
+    <div
+      class="relative w-full md:w-[320px] h-[220px] rounded-2xl overflow-hidden bg-slate-100 shrink-0"
+    >
+      <img
+        v-if="item.photos?.[0]"
+        :src="item.photos[0]"
+        :alt="item.title"
+        class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+      />
+
+      <div
+        v-else
+        class="w-full h-full flex items-center justify-center text-xs text-slate-400"
+      >
+        ยังไม่มีรูปภาพสำหรับทริปนี้
+      </div>
+
+      <!-- ป้ายจังหวัด -->
+      <div
+        v-if="item.province"
+        class="absolute left-3 top-3 inline-flex items-center rounded-full
+               bg-black/60 text-[11px] text-white px-2.5 py-0.5 backdrop-blur-sm"
+      >
+        <span class="truncate max-w-[150px]">
+          {{ item.province }}
+        </span>
+      </div>
+    </div>
 
     <!-- เนื้อหา -->
-    <div class="flex flex-col flex-1 order-2">
+    <div class="flex flex-col flex-1 gap-1.5">
       <!-- ชื่อทริป -->
-      <h2 class="mb-1">
+      <h2 class="mb-0.5">
         <RouterLink
-          :to="{ name: 'trip-detail', params: { id: props.item.id } }"
-          class="text-xl font-bold hover:underline"
+          :to="detailLink"
+          class="text-base sm:text-lg md:text-xl font-semibold text-slate-900
+                 hover:text-sky-600 hover:underline line-clamp-2"
         >
-          {{ props.item.title }}
+          {{ item.title }}
         </RouterLink>
       </h2>
 
-      <!-- จังหวัด -->
-      <p
-        v-if="props.item.province"
-        class="text-sm text-sky-600 font-medium mb-1"
-      >
-        {{ props.item.province }}
+      <!-- ผู้สร้าง / จังหวัด (fallback) -->
+      <p class="text-xs text-slate-500 mb-1">
+        <span v-if="item.authorName">
+          สร้างโดย
+          <span class="font-medium text-slate-700">
+            {{ item.authorName }}
+          </span>
+        </span>
+        <span v-else-if="item.province">
+          สถานที่:
+          <span class="font-medium text-slate-700">{{ item.province }}</span>
+        </span>
       </p>
 
       <!-- คำบรรยายสั้น -->
-      <p class="text-gray-700 mb-2">
+      <p class="text-sm text-slate-700 mb-1 line-clamp-3">
         {{ shortDesc }}
       </p>
 
       <!-- ลิงก์ไปหน้า Detail -->
       <RouterLink
-        :to="{ name: 'trip-detail', params: { id: props.item.id } }"
-        class="text-blue-500 underline mb-2 text-sm"
+        :to="detailLink"
+        class="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 hover:underline mb-1"
       >
-        View Detail
+        ดูรายละเอียดทริป
+        <span class="text-sm">➜</span>
       </RouterLink>
 
       <!-- แท็ก -->
       <TagList
-        :tags="props.item.tags || []"
-        :currentKeyword="props.keyword"
+        class="mt-1"
+        :tags="item.tags || []"
+        :currentKeyword="keyword"
         @clickTag="handleClickTag"
       />
 
       <!-- รูปย่อย -->
       <PhotoGrid
-        :photos="(props.item.photos || []).slice(1, 4)"
-        :title="props.item.title"
+        class="mt-2"
+        :photos="(item.photos || []).slice(1, 4)"
+        :title="item.title"
       />
     </div>
 
     <!-- ปุ่ม Copy -->
     <CopyButton :url="detailUrl" />
-  </div>
+  </article>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import TagList from "./TagList.vue";
 import PhotoGrid from "./PhotoGrid.vue";
 import CopyButton from "./CopyButton.vue";
 import type { Trip } from "@/types/trip";
 
-// ให้ TypeScript เห็นว่าเราใช้ props จริง ๆ
 const props = defineProps<{
   item: Trip & { url?: string };
   keyword: string;
@@ -80,15 +113,47 @@ const emit = defineEmits<{
   (e: "addKeyword", tag: string): void;
 }>();
 
+const route = useRoute();
+
+// access สั้น ๆ ใน template
+const item = props.item;
+const keyword = props.keyword;
+
 // description สั้นไม่เกิน 120 ตัว
 const shortDesc = computed(() => {
-  const text = (props.item.description ?? "").trim();
+  const text = (item.description ?? "").trim();
   return text.length > 120 ? text.slice(0, 120) + "…" : text;
 });
 
+// query ปัจจุบันของหน้า Home (ใช้ส่งติดไปหน้า detail เพื่อ back-to-search)
+const searchQuery = computed(() => {
+  const { keyword, province, tag } = route.query;
+  const q: Record<string, any> = {};
+
+  if (typeof keyword === "string" && keyword.trim()) {
+    q.keyword = keyword;
+  }
+  if (typeof province === "string" && province) {
+    q.province = province;
+  }
+  if (typeof tag === "string" && tag) {
+    q.tag = tag;
+  }
+
+  return q;
+});
+
+// URL สำหรับ copy (ใช้ path ตรง ๆ)
 const detailUrl = computed(() =>
-  props.item.url ? props.item.url : `/trips/${props.item.id}`
+  item.url ? item.url : `/trips/${item.id}`
 );
+
+// object ใช้กับ RouterLink (แนบ query ไปด้วย)
+const detailLink = computed(() => ({
+  name: "trip-detail",
+  params: { id: item.id },
+  query: searchQuery.value,
+}));
 
 function handleClickTag(tag: string) {
   emit("addKeyword", tag);

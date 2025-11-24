@@ -13,33 +13,62 @@ import EditTripPage from "@/pages/EditTripPage.vue";
 import { useAuthStore } from "@/stores/authStore";
 
 const routes = [
-  { path: "/", name: "home", component: HomePage },
-  { path: "/trips/:id", name: "trip-detail", component: TripDetailPage },
+  {
+    path: "/",
+    name: "home",
+    component: HomePage,
+  },
 
-  { path: "/login", name: "login", component: LoginPage },
-  { path: "/register", name: "register", component: RegisterPage },
+  {
+    path: "/trips/:id",
+    name: "trip-detail",
+    component: TripDetailPage,
+    props: true,
+  },
 
+  // ---------------------
+  // Auth
+  // ---------------------
+  {
+    path: "/login",
+    name: "login",
+    component: LoginPage,
+    meta: { guestOnly: true },
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: RegisterPage,
+    meta: { guestOnly: true },
+  },
+
+  // ---------------------
+  // Protected Routes
+  // ---------------------
   {
     path: "/dashboard",
     name: "dashboard",
     component: DashboardPage,
     meta: { requiresAuth: true },
   },
-
-  // สร้างทริปใหม่
   {
-    path: "/dashboard/create",
+    path: "/trips/create",
     name: "trip-create",
     component: CreateTripPage,
     meta: { requiresAuth: true },
   },
-
-  // แก้ไขทริป (ต้องล็อกอิน)
   {
     path: "/trips/:id/edit",
     name: "trip-edit",
     component: EditTripPage,
+    props: true,
     meta: { requiresAuth: true },
+  },
+
+  // Fallback
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: { name: "home" },
   },
 ];
 
@@ -48,24 +77,26 @@ const router = createRouter({
   routes,
 });
 
-// =====================
+// =============================
 // Global Navigation Guard
-// =====================
+// =============================
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
+  const auth = useAuthStore();
+  const isLoggedIn = !!auth.token;
 
-  const isLoggedIn = !!authStore.token;
-
-  // ต้องล็อกอินก่อนเข้า (Dashboard + Create + Edit)
+  // ต้อง login ก่อนเข้า (Dashboard, CreateTrip, EditTrip)
   if (to.meta.requiresAuth && !isLoggedIn) {
     return next({
       name: "login",
-      query: { redirect: to.fullPath },
+      query: {
+        expired: "1",          // ให้ login.vue แสดง "เซสชั่นหมดอายุ"
+        redirect: to.fullPath, // กลับมาหน้าเดิมหลัง login
+      },
     });
   }
 
-  // ไม่ให้เข้าหน้า login/register ถ้าล็อกอินแล้ว
-  if ((to.name === "login" || to.name === "register") && isLoggedIn) {
+  // ถ้า login แล้ว ไม่ให้กลับไป login/register
+  if (to.meta.guestOnly && isLoggedIn) {
     return next({ name: "home" });
   }
 
