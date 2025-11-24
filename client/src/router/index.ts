@@ -8,6 +8,7 @@ import RegisterPage from "@/pages/RegisterPage.vue";
 import DashboardPage from "@/pages/DashboardPage.vue";
 import CreateTripPage from "@/pages/CreateTripPage.vue";
 import EditTripPage from "@/pages/EditTripPage.vue";
+import ProfilePage from "@/pages/ProfilePage.vue"; // ⭐ เพิ่มหน้าโปรไฟล์
 
 // Pinia Store
 import { useAuthStore } from "@/stores/authStore";
@@ -52,6 +53,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/profile",
+    name: "profile",
+    component: ProfilePage,
+    meta: { requiresAuth: true }, // ⭐ ต้อง login เท่านั้น
+  },
+  {
     path: "/trips/create",
     name: "trip-create",
     component: CreateTripPage,
@@ -84,18 +91,18 @@ router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
   const isLoggedIn = !!auth.token;
 
-  // ต้อง login ก่อนเข้า (Dashboard, CreateTrip, EditTrip)
+  // ต้อง login
   if (to.meta.requiresAuth && !isLoggedIn) {
     return next({
       name: "login",
       query: {
-        expired: "1",          // ให้ login.vue แสดง "เซสชั่นหมดอายุ"
-        redirect: to.fullPath, // กลับมาหน้าเดิมหลัง login
+        expired: "1",
+        redirect: to.fullPath,
       },
     });
   }
 
-  // ถ้า login แล้ว ไม่ให้กลับไป login/register
+  // ถ้า login แล้ว ไม่ให้เข้าหน้า login/register
   if (to.meta.guestOnly && isLoggedIn) {
     return next({ name: "home" });
   }
