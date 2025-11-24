@@ -4,6 +4,7 @@ import com.travel.explorer.server.dto.TripCreateRequest;
 import com.travel.explorer.server.dto.TripUpdateRequest;
 import com.travel.explorer.server.dto.TripResponse;
 import com.travel.explorer.server.dto.TripMetaResponse;
+import com.travel.explorer.server.dto.DeletePhotoRequest;
 import com.travel.explorer.server.entity.User;
 import com.travel.explorer.server.exception.ForbiddenException;
 import com.travel.explorer.server.repository.UserRepository;
@@ -229,24 +230,23 @@ public class TripController {
     }
 
     // =======================================
-    //   DELETE /api/trips/{id}/photos?url=...
-    //   ลบรูปเดิมที่อัปโหลดในทริป
+    //   DELETE /api/trips/{id}/photos
+    //   ลบรูปเดิมที่อัปโหลดในทริป (รับ JSON body)
     // =======================================
     @DeleteMapping("/{id}/photos")
     public ResponseEntity<TripResponse> deleteTripPhoto(
             @PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String authHeader,
-            @RequestParam("url") String photoUrl
+            @Valid @RequestBody DeletePhotoRequest request
     ) {
-        if (photoUrl == null || photoUrl.isBlank()) {
-            return ResponseEntity.badRequest().build();
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
         }
 
-        if (authHeader == null || !authHeader.startsWith("Bearer "))
-            return ResponseEntity.status(401).build();
-
         String token = authHeader.substring(7).trim();
-        if (token.isEmpty()) return ResponseEntity.status(401).build();
+        if (token.isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
 
         String email;
         try {
@@ -256,17 +256,24 @@ public class TripController {
         }
 
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return ResponseEntity.status(401).build();
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
 
         try {
-          TripResponse updated = tripService.deleteTripPhoto(id, photoUrl, user);
-          return ResponseEntity.ok(updated);
+            TripResponse updated = tripService.deleteTripPhoto(
+                    id,
+                    request.getImageUrl(),
+                    user
+            );
+            return ResponseEntity.ok(updated);
         } catch (ForbiddenException e) {
-          return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).build();
         } catch (RuntimeException e) {
-          if ("Trip not found".equals(e.getMessage()))
-            return ResponseEntity.notFound().build();
-          throw e;
+            if ("Trip not found".equals(e.getMessage())) {
+                return ResponseEntity.notFound().build();
+            }
+            throw e;
         }
     }
 }
