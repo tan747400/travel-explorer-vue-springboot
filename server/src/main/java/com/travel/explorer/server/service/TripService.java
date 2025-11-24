@@ -1,7 +1,7 @@
 package com.travel.explorer.server.service;
 
-import com.travel.explorer.server.dto.TripCreateRequest;
-import com.travel.explorer.server.dto.TripUpdateRequest;
+import com.travel.explorer.server.dto.auth.TripCreateRequest;
+import com.travel.explorer.server.dto.auth.TripUpdateRequest;
 import com.travel.explorer.server.dto.TripResponse;
 import com.travel.explorer.server.dto.TripMetaResponse;
 import com.travel.explorer.server.entity.Trip;

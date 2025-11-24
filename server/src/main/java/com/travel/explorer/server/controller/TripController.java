@@ -1,10 +1,10 @@
 package com.travel.explorer.server.controller;
 
-import com.travel.explorer.server.dto.TripCreateRequest;
-import com.travel.explorer.server.dto.TripUpdateRequest;
+import com.travel.explorer.server.dto.auth.DeletePhotoRequest;
+import com.travel.explorer.server.dto.auth.TripCreateRequest;
+import com.travel.explorer.server.dto.auth.TripUpdateRequest;
 import com.travel.explorer.server.dto.TripResponse;
 import com.travel.explorer.server.dto.TripMetaResponse;
-import com.travel.explorer.server.dto.DeletePhotoRequest;
 import com.travel.explorer.server.entity.User;
 import com.travel.explorer.server.exception.ForbiddenException;
 import com.travel.explorer.server.repository.UserRepository;

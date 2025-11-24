@@ -1,4 +1,4 @@
-package com.travel.explorer.server.dto;
+package com.travel.explorer.server.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
