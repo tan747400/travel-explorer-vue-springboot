@@ -294,8 +294,7 @@ import {
   getTripById,
   updateTrip,
   uploadTripPhotos,
-  // 👇 ต้องมีฟังก์ชันนี้ใน tripService ให้ backend ลบรูป + คืน Trip ที่อัปเดตแล้ว
-  deleteTripPhoto,
+  deleteTripPhoto, // 👈 ฟังก์ชันเรียก API ลบรูป
 } from "@/services/tripService";
 import type { Trip } from "@/types/trip";
 
@@ -609,8 +608,12 @@ async function confirmDeletePhoto() {
   try {
     deletingPhoto.value = true;
 
-    // เรียก backend ให้ลบรูปออกจาก Supabase + DB
-    const updated = await deleteTripPhoto(tripId, photoToDelete.value, auth.token);
+    // เรียก backend ให้ลบรูปออกจาก Cloudinary + DB
+    const updated = await deleteTripPhoto(
+      tripId,
+      photoToDelete.value,
+      auth.token
+    );
     trip.value = updated;
 
     toast.success("ลบรูปออกจากทริปแล้ว");
@@ -631,3 +634,14 @@ async function confirmDeletePhoto() {
   }
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

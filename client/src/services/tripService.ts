@@ -135,10 +135,7 @@ export async function getMyTrips(token: string): Promise<Trip[]> {
     },
   });
 
-  return handleAuthJson<Trip[]>(
-    res,
-    "โหลดทริปของฉันไม่สำเร็จ"
-  );
+  return handleAuthJson<Trip[]>(res, "โหลดทริปของฉันไม่สำเร็จ");
 }
 
 /** Payload สำหรับ create / update */
@@ -184,10 +181,7 @@ export async function updateTrip(
     body: JSON.stringify(payload),
   });
 
-  return handleAuthJson<Trip>(
-    res,
-    "แก้ไขทริปไม่สำเร็จ"
-  );
+  return handleAuthJson<Trip>(res, "แก้ไขทริปไม่สำเร็จ");
 }
 
 /** ลบทริป */
@@ -222,8 +216,24 @@ export async function uploadTripPhotos(
     body: formData,
   });
 
-  return handleAuthJson<Trip>(
-    res,
-    "อัปโหลดรูปไม่สำเร็จ"
-  );
+  return handleAuthJson<Trip>(res, "อัปโหลดรูปไม่สำเร็จ");
+}
+
+/** ลบรูปเดิมออกจากทริป */
+export async function deleteTripPhoto(
+  id: number,
+  imageUrl: string,
+  token: string
+): Promise<Trip> {
+  const res = await fetch(`${API_BASE}/trips/${id}/photos`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ imageUrl }),
+  });
+
+  // backend จะคืน TripResponse ตัวล่าสุดกลับมา
+  return handleAuthJson<Trip>(res, "ลบรูปไม่สำเร็จ");
 }
