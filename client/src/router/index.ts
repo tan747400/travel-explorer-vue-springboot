@@ -56,7 +56,7 @@ const routes = [
     path: "/profile",
     name: "profile",
     component: ProfilePage,
-    meta: { requiresAuth: true }, // ⭐ ต้อง login เท่านั้น
+    meta: { requiresAuth: true },  ต้อง login เท่านั้น
   },
   {
     path: "/trips/create",
