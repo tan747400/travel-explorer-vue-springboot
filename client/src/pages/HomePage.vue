@@ -97,7 +97,7 @@
                     ? 'bg-sky-600 text-white border-sky-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
                 "
-                @click="selectedTag = ''"
+                @click="handleSelectAllTag"
               >
                 ทั้งหมด
               </button>
@@ -113,7 +113,7 @@
                     ? 'bg-sky-600 text-white border-sky-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-sky-50'
                 "
-                @click="selectedTag = tag"
+                @click="handleSelectTag(tag)"
               >
                 #{{ tag }}
               </button>
@@ -209,6 +209,12 @@ const shouldShowToggle = computed(() => tags.value.length > 8);
 
 // กันข้อมูลซ้ำ
 const loadedIds = new Set<number>();
+
+/* ยูทิลเล็ก ๆ สำหรับ scroll ขึ้นบนสุด */
+function scrollToTopSmooth() {
+  if (typeof window === "undefined") return;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 /* ดึงค่า state เริ่มต้นจาก route.query (รองรับ back-to-search) */
 function applyRouteQueryToState() {
@@ -309,9 +315,22 @@ useDebouncedEffect(
   300
 );
 
-/* Tag clicked from TripCard */
+/* Tag clicked from TripCard → เอา tag ไปใส่ในช่องค้นหา + scroll ขึ้นบนสุด */
 function handleAddKeyword(tag: string) {
   keyword.value = tag;
+  // เวลาคลิกแท็กจากการ์ด ให้เลื่อนขึ้นไปเห็น header / search ทุกครั้ง
+  scrollToTopSmooth();
+}
+
+/* handler สำหรับปุ่มแท็กด้านบน */
+function handleSelectTag(tag: string) {
+  selectedTag.value = tag;
+  scrollToTopSmooth();
+}
+
+function handleSelectAllTag() {
+  selectedTag.value = "";
+  scrollToTopSmooth();
 }
 
 /* sync state <-> route.query */
@@ -333,8 +352,11 @@ onMounted(async () => {
     history.scrollRestoration = "manual";
   }
 
+  // เข้าหน้าแรกให้อยู่บนสุด
   setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
   }, 0);
 
   await loadMeta();
