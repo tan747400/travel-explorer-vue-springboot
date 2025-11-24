@@ -8,7 +8,7 @@ import RegisterPage from "@/pages/RegisterPage.vue";
 import DashboardPage from "@/pages/DashboardPage.vue";
 import CreateTripPage from "@/pages/CreateTripPage.vue";
 import EditTripPage from "@/pages/EditTripPage.vue";
-import ProfilePage from "@/pages/ProfilePage.vue"; // ⭐ เพิ่มหน้าโปรไฟล์
+import ProfilePage from "@/pages/ProfilePage.vue"; 
 
 // Pinia Store
 import { useAuthStore } from "@/stores/authStore";
