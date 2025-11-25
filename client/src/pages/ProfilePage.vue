@@ -228,6 +228,7 @@
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     autocomplete="current-password"
                     required
+                    @input="passwordError = ''"
                   />
                 </div>
 
@@ -241,6 +242,7 @@
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     autocomplete="new-password"
                     required
+                    @input="passwordError = ''"
                   />
                 </div>
 
@@ -254,6 +256,7 @@
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     autocomplete="new-password"
                     required
+                    @input="passwordError = ''"
                   />
                 </div>
 
@@ -267,7 +270,9 @@
                     class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
                     :disabled="changingPassword"
                   >
-                    <span v-if="changingPassword">กำลังเปลี่ยนรหัสผ่าน...</span>
+                    <span v-if="changingPassword">
+                      กำลังเปลี่ยนรหัสผ่าน...
+                    </span>
                     <span v-else>Reset password</span>
                   </button>
                 </div>
@@ -486,6 +491,7 @@ async function handleChangePassword() {
     currentPassword.value = "";
     newPassword.value = "";
     confirmPassword.value = "";
+    passwordError.value = "";
   } catch (err: any) {
     console.error(err);
     const msg =
