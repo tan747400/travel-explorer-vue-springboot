@@ -24,7 +24,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // ไว้ทีหลังค่อยปรับเป็น config กลางได้
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -32,7 +32,8 @@ public class AuthController {
     private final AuthService authService;
     private final ImageUploadService imageUploadService;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // ใช้จาก SecurityConfig
+    private final BCryptPasswordEncoder passwordEncoder;
 
     // ======================================================
     // REGISTER
@@ -66,7 +67,7 @@ public class AuthController {
                 .userId(user.getId())
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
-                .profileImageUrl(user.getProfileImageUrl()) // ตอนนี้ยัง null
+                .profileImageUrl(user.getProfileImageUrl()) // ยัง null
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
@@ -120,11 +121,7 @@ public class AuthController {
         }
 
         try {
-            authService.changePassword(
-                    user,
-                    request.getCurrentPassword(),
-                    request.getNewPassword()
-            );
+            authService.changePassword(user, request.getCurrentPassword(), request.getNewPassword());
             return ResponseEntity.ok(Map.of("message", "เปลี่ยนรหัสผ่านสำเร็จ"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -141,15 +138,13 @@ public class AuthController {
             @Valid @RequestBody UpdateProfileRequest request
     ) {
         User user = validateTokenAndGetUser(authHeader);
-        if (user == null) {
+        if (user == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "โทเคนไม่ถูกต้องหรือหมดอายุ"));
-        }
 
         user.setDisplayName(request.getDisplayName());
         userRepository.save(user);
 
-        // อัปเดต token ให้ payload ใหม่ (displayName ใหม่)
         String token = jwtService.generateToken(
                 user.getEmail(),
                 Map.of(
@@ -178,18 +173,15 @@ public class AuthController {
             @RequestParam("file") MultipartFile file
     ) {
         User user = validateTokenAndGetUser(authHeader);
-        if (user == null) {
+        if (user == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "โทเคนไม่ถูกต้องหรือหมดอายุ"));
-        }
 
         try {
-            // ลบรูปเก่าก่อนถ้ามี
             if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
                 imageUploadService.deleteImage(user.getProfileImageUrl());
             }
 
-            // โฟลเดอร์ = travel-explorer/profile/{userId}
             String folder = "travel-explorer/profile/" + user.getId();
             String url = imageUploadService.uploadImageToFolder(file, folder);
 
@@ -197,7 +189,6 @@ public class AuthController {
             userRepository.save(user);
 
             AuthResponse res = AuthResponse.builder()
-                    // token เดิมยังใช้ได้ เลยส่ง token เดิมกลับ (ตัด "Bearer " ออก)
                     .token(authHeader.substring(7))
                     .userId(user.getId())
                     .email(user.getEmail())
@@ -222,10 +213,9 @@ public class AuthController {
             @RequestHeader(name = "Authorization", required = false) String authHeader
     ) {
         User user = validateTokenAndGetUser(authHeader);
-        if (user == null) {
+        if (user == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "โทเคนไม่ถูกต้องหรือหมดอายุ"));
-        }
 
         try {
             if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank()) {
@@ -244,7 +234,7 @@ public class AuthController {
     }
 
     // ======================================================
-    // HELPER: validate bearer token แล้วคืน User
+    // HELPER: validate bearer token
     // ======================================================
     private User validateTokenAndGetUser(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
