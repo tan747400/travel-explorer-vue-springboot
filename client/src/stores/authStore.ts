@@ -13,10 +13,15 @@ export interface AuthResponse {
   displayName: string;
 }
 
+interface AuthState {
+  token: string;
+  user: AuthUser | null;
+}
+
 export const useAuthStore = defineStore("auth", {
-  state: () => ({
+  state: (): AuthState => ({
     token: localStorage.getItem("token") || "",
-    user: ((): AuthUser | null => {
+    user: (() => {
       const raw = localStorage.getItem("user");
       if (!raw) return null;
       try {
@@ -28,16 +33,14 @@ export const useAuthStore = defineStore("auth", {
   }),
 
   getters: {
-    isLoggedIn: (state) => !!state.token,
-    userId: (state) => state.user?.userId ?? null,
-    userEmail: (state) => state.user?.email ?? "",
-    displayName: (state) => state.user?.displayName ?? "",
+    isLoggedIn: (state): boolean => !!state.token,
+    userId: (state): number | null => state.user?.userId ?? null,
+    userEmail: (state): string => state.user?.email ?? "",
+    displayName: (state): string => state.user?.displayName ?? "",
   },
 
   actions: {
-    /**
-     * ใช้ตอน login สำเร็จ รับทั้ง AuthResponse จาก backend
-     */
+    /** ใช้ตอน login/register สำเร็จ */
     setAuth(payload: AuthResponse) {
       this.token = payload.token;
       this.user = {
@@ -50,11 +53,11 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("user", JSON.stringify(this.user));
     },
 
-    /**
-     * เผื่อโค้ดเดิมที่ยังเรียก authStore.login(token, user)
-     * จะ map ให้เข้าโครงสร้างใหม่ (ถ้าไม่มี userId ให้ใช้ 0 ไปก่อน)
-     */
-    login(token: string, user: { email: string; displayName?: string; userId?: number }) {
+    /** เผื่อโค้ดเก่าเรียก auth.login(token, user) */
+    login(
+      token: string,
+      user: { email: string; displayName?: string; userId?: number }
+    ) {
       this.token = token;
       this.user = {
         userId: user.userId ?? this.user?.userId ?? 0,
@@ -69,7 +72,6 @@ export const useAuthStore = defineStore("auth", {
     logout() {
       this.token = "";
       this.user = null;
-
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     },

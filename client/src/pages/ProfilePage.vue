@@ -1,286 +1,422 @@
 <template>
-    <div class="min-h-screen bg-slate-50">
-      <main class="max-w-xl mx-auto px-4 py-10">
-        <!-- Header -->
-        <header class="mb-6 flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl md:text-3xl font-bold">โปรไฟล์ของฉัน</h1>
-            <p class="text-xs text-slate-500 mt-1">
-              ดูข้อมูลผู้ใช้, token expiry และเปลี่ยนรหัสผ่าน
-            </p>
-          </div>
-  
-          <button
-            type="button"
-            class="text-xs text-sky-600 hover:underline"
-            @click="goHome"
+  <!-- ใช้ h-screen + flex + overflow-hidden กันการ scroll -->
+  <div class="h-screen bg-slate-50 flex overflow-hidden">
+    <main class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-10">
+      <!-- ถ้ายังไม่ล็อกอิน -->
+      <section
+        v-if="!auth.isLoggedIn"
+        class="rounded-2xl bg-white border border-slate-200 px-6 py-8 text-center shadow-sm"
+      >
+        <h1 class="text-2xl font-bold text-slate-900 mb-2">
+          โปรไฟล์ผู้ใช้
+        </h1>
+        <p class="text-sm text-slate-600 mb-4">
+          คุณยังไม่ได้เข้าสู่ระบบ
+        </p>
+        <RouterLink
+          :to="{ name: 'login' }"
+          class="inline-flex items-center px-4 py-2 rounded-full bg-sky-600 text-white text-sm font-medium hover:bg-sky-700"
+        >
+          ไปที่หน้าเข้าสู่ระบบ
+        </RouterLink>
+      </section>
+
+      <template v-else>
+        <!-- Header: avatar + ชื่อ -->
+        <header class="mb-8 flex items-center gap-4">
+          <div
+            class="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md overflow-hidden"
           >
-            ← กลับหน้าแรก
-          </button>
+            <!-- ถ้ามีรูปให้โชว์รูป ไม่งั้นใช้ตัวอักษร -->
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              alt="Profile avatar"
+              class="h-full w-full object-cover"
+            />
+            <span v-else>
+              {{ initials }}
+            </span>
+          </div>
+
+          <div class="flex flex-col">
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
+              {{ profileName || "ผู้ใช้งาน" }}
+            </h1>
+            <p class="text-sm text-slate-500">
+              {{ auth.userEmail }}
+            </p>
+          </div>
         </header>
-  
-        <!-- ข้อมูลผู้ใช้ -->
-        <section
-          class="mb-6 rounded-2xl bg-white border border-slate-200 shadow-sm px-4 py-4 space-y-3"
-        >
-          <h2 class="text-sm font-semibold text-slate-800">
-            ข้อมูลผู้ใช้
-          </h2>
-  
-          <div class="space-y-2 text-sm">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-500 w-24">ชื่อ</span>
-              <span class="flex-1 text-right font-medium text-slate-800 truncate">
-                {{ displayName || "-" }}
-              </span>
-            </div>
-  
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-500 w-24">อีเมล</span>
-              <span class="flex-1 text-right text-slate-800 truncate">
-                {{ email || "-" }}
-              </span>
-            </div>
-  
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-500 w-24">Token หมดอายุ</span>
-              <span class="flex-1 text-right text-xs text-slate-700">
-                <span v-if="expiresAt">
-                  {{ expiresAtText }}
-                  <span class="ml-1 text-[11px]" v-if="expiresInText">
-                    (เหลือ {{ expiresInText }})
-                  </span>
-                </span>
-                <span v-else>-</span>
-              </span>
-            </div>
-          </div>
-  
-          <div class="pt-3 border-t border-slate-100 flex justify-end">
-            <button
-              type="button"
-              class="px-3 py-1.5 rounded-md border text-xs text-slate-600 hover:bg-slate-50"
-              @click="handleLogout"
+
+        <div class="flex flex-col md:flex-row gap-8">
+          <!-- ซ้าย: เมนูแท็บ -->
+          <aside class="md:w-52 flex-shrink-0">
+            <nav
+              class="rounded-2xl bg-white border border-slate-200 shadow-sm py-4"
             >
-              Logout
-            </button>
-          </div>
-        </section>
-  
-        <!-- เปลี่ยนรหัสผ่าน -->
-        <section
-          class="rounded-2xl bg-white border border-slate-200 shadow-sm px-4 py-4"
-        >
-          <h2 class="text-sm font-semibold text-slate-800 mb-2">
-            เปลี่ยนรหัสผ่าน
-          </h2>
-  
-          <form class="space-y-3" @submit.prevent="handleChangePassword">
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
-                รหัสผ่านปัจจุบัน
-              </label>
-              <input
-                v-model="currentPassword"
-                type="password"
-                class="w-full border rounded-md px-3 py-2 text-sm
-                       focus:outline-none focus:ring-1 focus:ring-sky-500"
-                autocomplete="current-password"
-                required
-              />
-            </div>
-  
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
-                รหัสผ่านใหม่
-              </label>
-              <input
-                v-model="newPassword"
-                type="password"
-                class="w-full border rounded-md px-3 py-2 text-sm
-                       focus:outline-none focus:ring-1 focus:ring-sky-500"
-                autocomplete="new-password"
-                required
-              />
-            </div>
-  
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
-                ยืนยันรหัสผ่านใหม่
-              </label>
-              <input
-                v-model="confirmPassword"
-                type="password"
-                class="w-full border rounded-md px-3 py-2 text-sm
-                       focus:outline-none focus:ring-1 focus:ring-sky-500"
-                autocomplete="new-password"
-                required
-              />
-            </div>
-  
-            <!-- error / success -->
-            <p
-              v-if="changeError"
-              class="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2"
-            >
-              {{ changeError }}
-            </p>
-            <p
-              v-if="changeSuccess"
-              class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2"
-            >
-              {{ changeSuccess }}
-            </p>
-  
-            <div class="pt-1 flex justify-end">
               <button
-                type="submit"
-                class="px-4 py-2 rounded-md bg-sky-600 text-white text-sm
-                       hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                :disabled="changing"
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
+                :class="
+                  activeTab === 'profile'
+                    ? 'text-slate-900 font-semibold bg-slate-50 border-r-4 border-sky-500'
+                    : 'text-slate-600 hover:bg-slate-50'
+                "
+                @click="activeTab = 'profile'"
               >
-                {{ changing ? "กำลังเปลี่ยนรหัสผ่าน..." : "บันทึกรหัสผ่านใหม่" }}
+                <span class="text-lg">👤</span>
+                <span>Profile</span>
               </button>
+
+              <button
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
+                :class="
+                  activeTab === 'password'
+                    ? 'text-slate-900 font-semibold bg-slate-50 border-r-4 border-sky-500'
+                    : 'text-slate-600 hover:bg-slate-50'
+                "
+                @click="activeTab = 'password'"
+              >
+                <span class="text-lg">🔒</span>
+                <span>Reset password</span>
+              </button>
+            </nav>
+          </aside>
+
+          <!-- ขวา: เนื้อหาแต่ละแท็บ -->
+          <section
+            class="flex-1 rounded-3xl bg-slate-50 border border-slate-200 shadow-sm px-6 sm:px-8 py-6 sm:py-8"
+          >
+            <!-- Tab: Profile -->
+            <div v-if="activeTab === 'profile'" class="space-y-6">
+              <!-- Avatar + upload -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-6">
+                <div class="relative">
+                  <div
+                    class="h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-3xl font-semibold shadow-md overflow-hidden"
+                  >
+                    <img
+                      v-if="avatarUrl"
+                      :src="avatarUrl"
+                      alt="Profile avatar"
+                      class="h-full w-full object-cover"
+                    />
+                    <span v-else>
+                      {{ initials }}
+                    </span>
+                  </div>
+
+                  <!-- ปุ่มลบรูป -->
+                  <button
+                    v-if="avatarUrl"
+                    type="button"
+                    class="absolute -top-1 -right-1 h-7 w-7 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center text-slate-500 hover:bg-slate-50 text-xs"
+                    @click="removeAvatar"
+                    aria-label="ลบรูปโปรไฟล์"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50"
+                    @click="triggerUpload"
+                  >
+                    Upload profile picture
+                  </button>
+                  <p class="text-xs text-slate-400">
+                    รองรับไฟล์รูปภาพทั่วไป (เช่น .jpg, .png) ใช้เพื่อแสดงเฉพาะในฝั่ง
+                    UI
+                  </p>
+
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="onAvatarSelected"
+                  />
+                </div>
+              </div>
+
+              <!-- ฟอร์มข้อมูลพื้นฐาน -->
+              <form
+                class="mt-6 space-y-4"
+                @submit.prevent="handleSaveProfile"
+              >
+                <div class="space-y-1">
+                  <label class="block text-xs font-medium text-slate-700">
+                    Name
+                  </label>
+                  <input
+                    v-model="profileName"
+                    type="text"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    placeholder="Full name"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <label class="block text-xs font-medium text-slate-700">
+                    Username
+                  </label>
+                  <input
+                    v-model="profileUsername"
+                    type="text"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    placeholder="Username"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <label class="block text-xs font-medium text-slate-700">
+                    Email
+                  </label>
+                  <input
+                    :value="auth.userEmail"
+                    type="email"
+                    class="w-full border border-slate-200 bg-slate-100 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                    disabled
+                  />
+                </div>
+
+                <div class="pt-2">
+                  <button
+                    type="submit"
+                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </section>
-      </main>
-    </div>
-  </template>
-  
-  <script setup lang="ts">
-  import { computed, ref } from "vue";
-  import { useRouter } from "vue-router";
-  import { useAuthStore } from "@/stores/authStore";
-  import { changePassword } from "@/services/authService"; // เดี๋ยวให้ตัวอย่างฟังก์ชันด้านล่าง
-  import { useToast } from "vue-toastification";
-  
-  const router = useRouter();
-  const auth = useAuthStore();
-  const toast = useToast();
-  
-  /* ========= ข้อมูลจาก store / token ========= */
-  
-  const token = computed(() => auth.token || "");
-  
-  // สมมติว่า authStore มี user ที่เก็บชื่อ/อีเมลไว้ ถ้า key ไม่ตรงปรับชื่อ field ได้เลย
-  const displayName = computed(
-    () =>
-      (auth.user as any)?.displayName ||
-      (auth.user as any)?.name ||
-      (auth.user as any)?.username ||
-      ""
-  );
-  
-  const email = computed(
-    () => (auth.user as any)?.email || decodeTokenPayload()?.email || ""
-  );
-  
-  // decode JWT แบบเบา ๆ ไม่ต้องลง library เพิ่ม
-  function decodeTokenPayload():
-    | { exp?: number; email?: string; sub?: string; [key: string]: any }
-    | null {
-    if (!token.value) return null;
-    try {
-      const [, payload] = token.value.split(".");
-      if (!payload) return null;
-      const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-      const json = atob(base64);
-      return JSON.parse(json);
-    } catch (e) {
-      console.warn("Cannot decode JWT payload", e);
-      return null;
-    }
+
+            <!-- Tab: Reset password -->
+            <div v-else class="space-y-6">
+              <div class="space-y-1">
+                <h2 class="text-lg font-semibold text-slate-900">
+                  Reset password
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-500">
+                  เพื่อความปลอดภัย แนะนำให้เปลี่ยนรหัสผ่านเป็นระยะ ๆ
+                  และใช้รหัสผ่านที่คาดเดายาก
+                </p>
+              </div>
+
+              <form class="space-y-3" @submit.prevent="handleChangePassword">
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">
+                    Current password
+                  </label>
+                  <input
+                    v-model="currentPassword"
+                    type="password"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    autocomplete="current-password"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">
+                    New password
+                  </label>
+                  <input
+                    v-model="newPassword"
+                    type="password"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    autocomplete="new-password"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">
+                    Confirm new password
+                  </label>
+                  <input
+                    v-model="confirmPassword"
+                    type="password"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    autocomplete="new-password"
+                    required
+                  />
+                </div>
+
+                <p v-if="passwordError" class="text-xs text-red-500">
+                  {{ passwordError }}
+                </p>
+
+                <div class="pt-2">
+                  <button
+                    type="submit"
+                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :disabled="changingPassword"
+                  >
+                    <span v-if="changingPassword">กำลังเปลี่ยนรหัสผ่าน...</span>
+                    <span v-else>Reset password</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </template>
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import { useRouter, RouterLink } from "vue-router";
+import { useAuthStore } from "@/stores/authStore";
+import { useToast } from "vue-toastification";
+import { changePassword } from "@/services/authService";
+
+const auth = useAuthStore();
+const router = useRouter();
+const toast = useToast();
+
+/* ========== ปิด scroll ของ body ตอนอยู่หน้านี้ ========== */
+let previousOverflow = "";
+
+onMounted(() => {
+  previousOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = previousOverflow;
+});
+
+/* ========== UI state ========== */
+const activeTab = ref<"profile" | "password">("profile");
+
+// avatar preview (ยังไม่เชื่อม backend)
+const avatarUrl = ref<string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const profileName = ref(auth.displayName || "");
+const profileUsername = ref(""); // ไว้เผื่อในอนาคต
+
+// ฟอร์มเปลี่ยนรหัสผ่าน
+const currentPassword = ref("");
+const newPassword = ref("");
+const confirmPassword = ref("");
+const passwordError = ref("");
+const changingPassword = ref(false);
+
+/* ========== Helpers ========== */
+
+// Initials สำหรับ avatar
+const initials = computed(() => {
+  const base = profileName.value || auth.displayName || auth.userEmail || "";
+  if (!base.trim()) return "?";
+
+  const parts: string[] = base.trim().split(" ");
+  const first = parts[0];
+  if (!first) return "?";
+
+  if (parts.length === 1) {
+    return first.charAt(0).toUpperCase();
   }
-  
-  const expiresAt = computed<Date | null>(() => {
-    const payload = decodeTokenPayload();
-    if (!payload?.exp) return null;
-    return new Date(payload.exp * 1000);
-  });
-  
-  const expiresAtText = computed(() => {
-    if (!expiresAt.value) return "";
-    return expiresAt.value.toLocaleString("th-TH");
-  });
-  
-  const expiresInText = computed(() => {
-    if (!expiresAt.value) return "";
-    const ms = expiresAt.value.getTime() - Date.now();
-    if (ms <= 0) return "หมดอายุแล้ว";
-    const minutes = Math.round(ms / 60000);
-    if (minutes <= 1) return "ไม่ถึง 1 นาที";
-    if (minutes < 60) return `${minutes} นาที`;
-    const hours = Math.round(minutes / 60);
-    return `${hours} ชม.`;
-  });
-  
-  /* ========= เปลี่ยนรหัสผ่าน ========= */
-  
-  const currentPassword = ref("");
-  const newPassword = ref("");
-  const confirmPassword = ref("");
-  
-  const changing = ref(false);
-  const changeError = ref("");
-  const changeSuccess = ref("");
-  
-  async function handleChangePassword() {
-    changeError.value = "";
-    changeSuccess.value = "";
-  
-    if (!currentPassword.value || !newPassword.value) {
-      changeError.value = "กรุณากรอกรหัสผ่านให้ครบ";
-      return;
-    }
-    if (newPassword.value.length < 6) {
-      changeError.value = "รหัสผ่านใหม่ต้องยาวอย่างน้อย 6 ตัวอักษร";
-      return;
-    }
-    if (newPassword.value !== confirmPassword.value) {
-      changeError.value = "รหัสผ่านใหม่และยืนยันไม่ตรงกัน";
-      return;
-    }
-  
-    if (!token.value) {
-      changeError.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-      auth.logout();
-      router.push({ name: "login" });
-      return;
-    }
-  
-    try {
-      changing.value = true;
-      await changePassword(token.value, {
-        currentPassword: currentPassword.value,
-        newPassword: newPassword.value,
-      });
-  
-      changeSuccess.value = "เปลี่ยนรหัสผ่านสำเร็จ";
-      toast.success("เปลี่ยนรหัสผ่านสำเร็จ");
-  
-      currentPassword.value = "";
-      newPassword.value = "";
-      confirmPassword.value = "";
-    } catch (err: any) {
-      console.error(err);
-      changeError.value =
-        err?.message || "เปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
-    } finally {
-      changing.value = false;
-    }
+
+  const second = parts[1] || "";
+  return (first.charAt(0) + (second.charAt(0) || "")).toUpperCase();
+});
+
+/* ========== Avatar upload (ฝั่ง UI เท่านั้น) ========== */
+function triggerUpload() {
+  fileInput.value?.click();
+}
+
+function onAvatarSelected(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  if (avatarUrl.value) {
+    URL.revokeObjectURL(avatarUrl.value);
   }
-  
-  /* ========= อื่น ๆ ========= */
-  
-  function handleLogout() {
+  avatarUrl.value = URL.createObjectURL(file);
+}
+
+function removeAvatar() {
+  if (avatarUrl.value) {
+    URL.revokeObjectURL(avatarUrl.value);
+  }
+  avatarUrl.value = null;
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+}
+
+/* ========== Actions ========== */
+
+// ตอนนี้ mock บันทึกโปรไฟล์ (ยังไม่ยิง API จริง)
+function handleSaveProfile() {
+  // ในอนาคตให้เรียก API update profile แล้วค่อยอัปเดต store
+  toast.success("บันทึกโปรไฟล์ (ฝั่ง UI) เรียบร้อย");
+}
+
+/* เปลี่ยนรหัสผ่าน */
+async function handleChangePassword() {
+  passwordError.value = "";
+
+  if (!auth.token) {
+    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
     auth.logout();
-    router.push({ name: "login" });
+    router.push({ name: "login", query: { expired: "1" } });
+    return;
   }
-  
-  function goHome() {
-    router.push({ name: "home" });
+
+  if (newPassword.value !== confirmPassword.value) {
+    passwordError.value = "รหัสผ่านใหม่และการยืนยันไม่ตรงกัน";
+    return;
   }
-  </script>
-  
-  <style scoped></style>  
+
+  if (newPassword.value.length < 6) {
+    passwordError.value = "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร";
+    return;
+  }
+
+  try {
+    changingPassword.value = true;
+    await changePassword(auth.token, {
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value,
+    });
+
+    toast.success("เปลี่ยนรหัสผ่านสำเร็จ 🎉");
+
+    currentPassword.value = "";
+    newPassword.value = "";
+    confirmPassword.value = "";
+  } catch (err: any) {
+    console.error(err);
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "เปลี่ยนรหัสผ่านไม่สำเร็จ";
+    passwordError.value = msg;
+    toast.error(msg);
+  } finally {
+    changingPassword.value = false;
+  }
+}
+</script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

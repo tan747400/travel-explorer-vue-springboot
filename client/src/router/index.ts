@@ -8,7 +8,7 @@ import RegisterPage from "@/pages/RegisterPage.vue";
 import DashboardPage from "@/pages/DashboardPage.vue";
 import CreateTripPage from "@/pages/CreateTripPage.vue";
 import EditTripPage from "@/pages/EditTripPage.vue";
-import ProfilePage from "@/pages/ProfilePage.vue"; 
+import ProfilePage from "@/pages/ProfilePage.vue";
 
 // Pinia Store
 import { useAuthStore } from "@/stores/authStore";
@@ -56,7 +56,7 @@ const routes = [
     path: "/profile",
     name: "profile",
     component: ProfilePage,
-    meta: { requiresAuth: true },  ต้อง login เท่านั้น
+    meta: { requiresAuth: true }, // ต้อง login เท่านั้น
   },
   {
     path: "/trips/create",
@@ -89,20 +89,20 @@ const router = createRouter({
 // =============================
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
-  const isLoggedIn = !!auth.token;
+  const isLoggedIn = auth.isLoggedIn; // ใช้ getter จาก store
 
-  // ต้อง login
+  // ต้อง login ก่อนเข้า route ที่กำหนด requiresAuth
   if (to.meta.requiresAuth && !isLoggedIn) {
     return next({
       name: "login",
       query: {
-        expired: "1",
+        expired: "1", // ให้หน้า login แสดงว่าต้องล็อกอินใหม่
         redirect: to.fullPath,
       },
     });
   }
 
-  // ถ้า login แล้ว ไม่ให้เข้าหน้า login/register
+  // ถ้า login แล้ว ไม่ให้เข้าหน้า login/register อีก
   if (to.meta.guestOnly && isLoggedIn) {
     return next({ name: "home" });
   }
