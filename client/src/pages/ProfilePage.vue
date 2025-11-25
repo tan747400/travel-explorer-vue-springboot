@@ -1,7 +1,9 @@
 <template>
-  <!-- ใช้ h-screen + flex + overflow-hidden กันการ scroll -->
-  <div class="h-screen bg-slate-50 flex overflow-hidden">
-    <main class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-10">
+  <!-- ใช้ min-h-screen ให้ยืดตามความสูงจอ และให้ scroll ได้ปกติ -->
+  <div class="min-h-screen bg-slate-50">
+    <main
+      class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-10 lg:py-14"
+    >
       <!-- ถ้ายังไม่ล็อกอิน -->
       <section
         v-if="!auth.isLoggedIn"
@@ -21,13 +23,18 @@
         </RouterLink>
       </section>
 
-      <template v-else>
+      <!-- ถ้าล็อกอินแล้ว -->
+      <section
+        v-else
+        class="rounded-3xl bg-white border border-slate-200 shadow-sm px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10"
+      >
         <!-- Header: avatar + ชื่อ -->
-        <header class="mb-8 flex items-center gap-4">
+        <header
+          class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 border-b border-slate-100 pb-5 mb-6"
+        >
           <div
-            class="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md overflow-hidden"
+            class="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md overflow-hidden mx-auto sm:mx-0"
           >
-            <!-- ถ้ามีรูปให้โชว์รูป ไม่งั้นใช้ตัวอักษร -->
             <img
               v-if="avatarUrl"
               :src="avatarUrl"
@@ -39,29 +46,29 @@
             </span>
           </div>
 
-          <div class="flex flex-col">
+          <div class="text-center sm:text-left">
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
               {{ profileName || "ผู้ใช้งาน" }}
             </h1>
-            <p class="text-sm text-slate-500">
+            <p class="text-sm text-slate-500 mt-0.5">
               {{ auth.userEmail }}
             </p>
           </div>
         </header>
 
-        <div class="flex flex-col md:flex-row gap-8">
+        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
           <!-- ซ้าย: เมนูแท็บ -->
           <aside class="md:w-52 flex-shrink-0">
             <nav
-              class="rounded-2xl bg-white border border-slate-200 shadow-sm py-4"
+              class="rounded-2xl bg-slate-50 border border-slate-200 shadow-sm py-3"
             >
               <button
                 type="button"
                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
                 :class="
                   activeTab === 'profile'
-                    ? 'text-slate-900 font-semibold bg-slate-50 border-r-4 border-sky-500'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'text-slate-900 font-semibold bg-white border-r-4 border-sky-500'
+                    : 'text-slate-600 hover:bg-white'
                 "
                 @click="activeTab = 'profile'"
               >
@@ -74,8 +81,8 @@
                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
                 :class="
                   activeTab === 'password'
-                    ? 'text-slate-900 font-semibold bg-slate-50 border-r-4 border-sky-500'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'text-slate-900 font-semibold bg-white border-r-4 border-sky-500'
+                    : 'text-slate-600 hover:bg-white'
                 "
                 @click="activeTab = 'password'"
               >
@@ -87,13 +94,15 @@
 
           <!-- ขวา: เนื้อหาแต่ละแท็บ -->
           <section
-            class="flex-1 rounded-3xl bg-slate-50 border border-slate-200 shadow-sm px-6 sm:px-8 py-6 sm:py-8"
+            class="flex-1 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm px-5 sm:px-6 py-5 sm:py-6"
           >
             <!-- Tab: Profile -->
             <div v-if="activeTab === 'profile'" class="space-y-6">
               <!-- Avatar + upload -->
-              <div class="flex flex-col sm:flex-row sm:items-center gap-6">
-                <div class="relative">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center gap-6 border-b border-slate-100 pb-5"
+              >
+                <div class="relative mx-auto sm:mx-0">
                   <div
                     class="h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-3xl font-semibold shadow-md overflow-hidden"
                   >
@@ -108,11 +117,11 @@
                     </span>
                   </div>
 
-                  <!-- ปุ่มลบรูป -->
+                  <!-- ปุ่มลบรูป (ลบเฉพาะ preview / mark ไว้ลบตอน Save) -->
                   <button
                     v-if="avatarUrl"
                     type="button"
-                    class="absolute -top-1 -right-1 h-7 w-7 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center text-slate-500 hover:bg-slate-50 text-xs"
+                    class="absolute -top-1.5 -right-1.5 h-7 w-7 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center text-slate-500 hover:bg-slate-50 text-xs"
                     @click="handleRemoveAvatar"
                     aria-label="ลบรูปโปรไฟล์"
                   >
@@ -120,18 +129,18 @@
                   </button>
                 </div>
 
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-2 flex-1 text-center sm:text-left">
                   <button
                     type="button"
-                    class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50"
                     @click="triggerUpload"
-                    :disabled="uploadingAvatar"
                   >
-                    <span v-if="uploadingAvatar">กำลังอัปโหลด...</span>
-                    <span v-else>Upload profile picture</span>
+                    เลือกรูปโปรไฟล์จากเครื่อง
                   </button>
                   <p class="text-xs text-slate-400">
-                    รองรับไฟล์รูปภาพทั่วไป (เช่น .jpg, .png) ใช้เพื่อแสดงเฉพาะในฝั่ง UI
+                    เลือกรูปแล้วจะเห็นตัวอย่างทันที
+                    แต่จะอัปโหลดจริงเมื่อกดปุ่ม
+                    <span class="font-semibold">Save</span>
                   </p>
 
                   <input
@@ -145,10 +154,7 @@
               </div>
 
               <!-- ฟอร์มข้อมูลพื้นฐาน -->
-              <form
-                class="mt-6 space-y-4"
-                @submit.prevent="handleSaveProfile"
-              >
+              <form class="space-y-4 pt-1" @submit.prevent="handleSaveProfile">
                 <div class="space-y-1">
                   <label class="block text-xs font-medium text-slate-700">
                     Name
@@ -269,13 +275,13 @@
             </div>
           </section>
         </div>
-      </template>
+      </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref } from "vue";
 import { useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
@@ -290,24 +296,20 @@ const auth = useAuthStore();
 const router = useRouter();
 const toast = useToast();
 
-/* ========== ปิด scroll ของ body ตอนอยู่หน้านี้ ========== */
-let previousOverflow = "";
-
-onMounted(() => {
-  previousOverflow = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
-});
-
-onUnmounted(() => {
-  document.body.style.overflow = previousOverflow;
-});
-
 /* ========== UI state ========== */
 const activeTab = ref<"profile" | "password">("profile");
 
-// avatar url มาจาก store
-const avatarUrl = ref<string | null>(auth.profileImageUrl || null);
-const uploadingAvatar = ref(false);
+// avatar url ปัจจุบันที่แสดงในหน้า
+const avatarUrl = ref<string | null>(auth.profileImageUrl);
+// เก็บค่า avatar เดิมจาก backend ไว้ใช้ตัดสินใจลบ
+const originalAvatarUrl = ref<string | null>(auth.profileImageUrl);
+// ไฟล์ที่ผู้ใช้เลือกไว้แต่ยังไม่อัปโหลด
+const selectedAvatarFile = ref<File | null>(null);
+// URL ที่สร้างจาก URL.createObjectURL เพื่อ preview
+const avatarPreviewUrl = ref<string | null>(null);
+// flag ว่าผู้ใช้กดลบรูป (แล้วจะไปลบจริงตอน Save)
+const avatarDeleteRequested = ref(false);
+
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const profileName = ref(auth.displayName || "");
@@ -342,87 +344,45 @@ const initials = computed(() => {
   return (first.charAt(0) + (second.charAt(0) || "")).toUpperCase();
 });
 
-/* ========== Avatar upload (จริง เชื่อม backend) ========== */
+/* ========== Avatar: เลือกรูป + preview (ยังไม่อัปโหลด) ========== */
 function triggerUpload() {
   fileInput.value?.click();
 }
 
-async function onAvatarSelected(e: Event) {
+function onAvatarSelected(e: Event) {
   const target = e.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  if (!auth.token) {
-    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-    auth.logout();
-    router.push({ name: "login", query: { expired: "1" } });
-    return;
+  // ล้าง preview เดิมถ้ามี
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value);
+    avatarPreviewUrl.value = null;
   }
 
-  try {
-    uploadingAvatar.value = true;
+  selectedAvatarFile.value = file;
+  avatarDeleteRequested.value = false;
 
-    const res = await uploadProfilePicture(auth.token, file);
-
-    avatarUrl.value = res.profileImageUrl || null;
-    if ((auth as any).setProfileImageUrl) {
-      (auth as any).setProfileImageUrl(res.profileImageUrl || null);
-    } else {
-      // fallback ถ้า store ยังไม่มี method นี้
-      (auth as any).profileImageUrl = res.profileImageUrl || null;
-    }
-
-    if (res.displayName) {
-      (auth as any).displayName = res.displayName;
-      profileName.value = res.displayName;
-    }
-
-    toast.success("อัปโหลดรูปโปรไฟล์เรียบร้อย");
-  } catch (err: any) {
-    console.error(err);
-    const msg =
-      err?.response?.data?.message ||
-      err?.message ||
-      "อัปโหลดรูปโปรไฟล์ไม่สำเร็จ";
-    toast.error(msg);
-  } finally {
-    uploadingAvatar.value = false;
-    if (fileInput.value) {
-      fileInput.value.value = "";
-    }
-  }
+  const preview = URL.createObjectURL(file);
+  avatarPreviewUrl.value = preview;
+  avatarUrl.value = preview;
 }
 
-async function handleRemoveAvatar() {
-  if (!auth.token) {
-    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-    auth.logout();
-    router.push({ name: "login", query: { expired: "1" } });
-    return;
+function handleRemoveAvatar() {
+  // ลบไฟล์ที่เลือกไว้ (ถ้ามี)
+  selectedAvatarFile.value = null;
+
+  // ลบ preview object URL ถ้ามี
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value);
+    avatarPreviewUrl.value = null;
   }
 
-  try {
-    await deleteProfilePicture(auth.token);
+  avatarUrl.value = null;
 
-    avatarUrl.value = null;
-    if ((auth as any).setProfileImageUrl) {
-      (auth as any).setProfileImageUrl(null);
-    } else {
-      (auth as any).profileImageUrl = null;
-    }
-
-    if (fileInput.value) {
-      fileInput.value.value = "";
-    }
-
-    toast.success("ลบรูปโปรไฟล์เรียบร้อย");
-  } catch (err: any) {
-    console.error(err);
-    const msg =
-      err?.response?.data?.message ||
-      err?.message ||
-      "ลบรูปโปรไฟล์ไม่สำเร็จ";
-    toast.error(msg);
+  // ถ้ามีรูปเดิมจาก backend อยู่ ให้ mark ว่าจะลบตอน Save
+  if (originalAvatarUrl.value) {
+    avatarDeleteRequested.value = true;
   }
 }
 
@@ -438,13 +398,46 @@ async function handleSaveProfile() {
 
   try {
     savingProfile.value = true;
-    const res = await updateProfile(auth.token, {
-      displayName: profileName.value,
-    });
 
-    (auth as any).displayName = res.displayName;
-    if ((auth as any).setDisplayName) {
-      (auth as any).setDisplayName(res.displayName);
+    // 1) อัปเดตชื่อ (ถ้าเปลี่ยน)
+    if (profileName.value !== auth.displayName) {
+      const res = await updateProfile(auth.token, {
+        displayName: profileName.value,
+      });
+
+      auth.setAuth(res);
+      profileName.value = auth.displayName || profileName.value;
+
+      // เผื่อ backend ส่ง profileImageUrl กลับมา
+      avatarUrl.value = auth.profileImageUrl;
+      originalAvatarUrl.value = auth.profileImageUrl;
+    }
+
+    // 2) ถ้ามีไฟล์ใหม่ → อัปโหลดรูปโปรไฟล์
+    if (selectedAvatarFile.value) {
+      const res = await uploadProfilePicture(auth.token, selectedAvatarFile.value);
+
+      auth.setAuth(res);
+
+      avatarUrl.value = auth.profileImageUrl;
+      originalAvatarUrl.value = auth.profileImageUrl;
+
+      // เคลียร์ preview URL
+      if (avatarPreviewUrl.value) {
+        URL.revokeObjectURL(avatarPreviewUrl.value);
+        avatarPreviewUrl.value = null;
+      }
+      selectedAvatarFile.value = null;
+      avatarDeleteRequested.value = false;
+    }
+    // 3) ถ้า mark ว่าจะลบรูปเดิม และยังมีรูปเดิมใน backend
+    else if (avatarDeleteRequested.value && originalAvatarUrl.value) {
+      await deleteProfilePicture(auth.token);
+
+      auth.setProfileImageUrl(null);
+      avatarUrl.value = null;
+      originalAvatarUrl.value = null;
+      avatarDeleteRequested.value = false;
     }
 
     toast.success("บันทึกโปรไฟล์เรียบร้อย");
