@@ -113,7 +113,7 @@
                     v-if="avatarUrl"
                     type="button"
                     class="absolute -top-1 -right-1 h-7 w-7 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center text-slate-500 hover:bg-slate-50 text-xs"
-                    @click="removeAvatar"
+                    @click="handleRemoveAvatar"
                     aria-label="ลบรูปโปรไฟล์"
                   >
                     ✕
@@ -123,14 +123,15 @@
                 <div class="flex flex-col gap-2">
                   <button
                     type="button"
-                    class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50"
+                    class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
                     @click="triggerUpload"
+                    :disabled="uploadingAvatar"
                   >
-                    Upload profile picture
+                    <span v-if="uploadingAvatar">กำลังอัปโหลด...</span>
+                    <span v-else>Upload profile picture</span>
                   </button>
                   <p class="text-xs text-slate-400">
-                    รองรับไฟล์รูปภาพทั่วไป (เช่น .jpg, .png) ใช้เพื่อแสดงเฉพาะในฝั่ง
-                    UI
+                    รองรับไฟล์รูปภาพทั่วไป (เช่น .jpg, .png) ใช้เพื่อแสดงเฉพาะในฝั่ง UI
                   </p>
 
                   <input
@@ -169,6 +170,7 @@
                     type="text"
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     placeholder="Username"
+                    disabled
                   />
                 </div>
 
@@ -187,9 +189,11 @@
                 <div class="pt-2">
                   <button
                     type="submit"
-                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :disabled="savingProfile"
                   >
-                    Save
+                    <span v-if="savingProfile">กำลังบันทึก...</span>
+                    <span v-else>Save</span>
                   </button>
                 </div>
               </form>
@@ -275,7 +279,12 @@ import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
-import { changePassword } from "@/services/authService";
+import {
+  changePassword,
+  uploadProfilePicture,
+  deleteProfilePicture,
+  updateProfile,
+} from "@/services/authService";
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -296,12 +305,13 @@ onUnmounted(() => {
 /* ========== UI state ========== */
 const activeTab = ref<"profile" | "password">("profile");
 
-// avatar preview (ยังไม่เชื่อม backend)
-const avatarUrl = ref<string | null>(null);
+// avatar url มาจาก store
+const avatarUrl = ref<string | null>(auth.profileImageUrl || null);
+const uploadingAvatar = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const profileName = ref(auth.displayName || "");
-const profileUsername = ref(""); // ไว้เผื่อในอนาคต
+const profileUsername = ref(""); // ยังไม่ได้ใช้ backend เลยปิดแก้ไขไว้
 
 // ฟอร์มเปลี่ยนรหัสผ่าน
 const currentPassword = ref("");
@@ -309,6 +319,9 @@ const newPassword = ref("");
 const confirmPassword = ref("");
 const passwordError = ref("");
 const changingPassword = ref(false);
+
+// saving profile
+const savingProfile = ref(false);
 
 /* ========== Helpers ========== */
 
@@ -329,38 +342,122 @@ const initials = computed(() => {
   return (first.charAt(0) + (second.charAt(0) || "")).toUpperCase();
 });
 
-/* ========== Avatar upload (ฝั่ง UI เท่านั้น) ========== */
+/* ========== Avatar upload (จริง เชื่อม backend) ========== */
 function triggerUpload() {
   fileInput.value?.click();
 }
 
-function onAvatarSelected(e: Event) {
+async function onAvatarSelected(e: Event) {
   const target = e.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
 
-  if (avatarUrl.value) {
-    URL.revokeObjectURL(avatarUrl.value);
+  if (!auth.token) {
+    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    auth.logout();
+    router.push({ name: "login", query: { expired: "1" } });
+    return;
   }
-  avatarUrl.value = URL.createObjectURL(file);
+
+  try {
+    uploadingAvatar.value = true;
+
+    const res = await uploadProfilePicture(auth.token, file);
+
+    avatarUrl.value = res.profileImageUrl || null;
+    if ((auth as any).setProfileImageUrl) {
+      (auth as any).setProfileImageUrl(res.profileImageUrl || null);
+    } else {
+      // fallback ถ้า store ยังไม่มี method นี้
+      (auth as any).profileImageUrl = res.profileImageUrl || null;
+    }
+
+    if (res.displayName) {
+      (auth as any).displayName = res.displayName;
+      profileName.value = res.displayName;
+    }
+
+    toast.success("อัปโหลดรูปโปรไฟล์เรียบร้อย");
+  } catch (err: any) {
+    console.error(err);
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "อัปโหลดรูปโปรไฟล์ไม่สำเร็จ";
+    toast.error(msg);
+  } finally {
+    uploadingAvatar.value = false;
+    if (fileInput.value) {
+      fileInput.value.value = "";
+    }
+  }
 }
 
-function removeAvatar() {
-  if (avatarUrl.value) {
-    URL.revokeObjectURL(avatarUrl.value);
+async function handleRemoveAvatar() {
+  if (!auth.token) {
+    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    auth.logout();
+    router.push({ name: "login", query: { expired: "1" } });
+    return;
   }
-  avatarUrl.value = null;
-  if (fileInput.value) {
-    fileInput.value.value = "";
+
+  try {
+    await deleteProfilePicture(auth.token);
+
+    avatarUrl.value = null;
+    if ((auth as any).setProfileImageUrl) {
+      (auth as any).setProfileImageUrl(null);
+    } else {
+      (auth as any).profileImageUrl = null;
+    }
+
+    if (fileInput.value) {
+      fileInput.value.value = "";
+    }
+
+    toast.success("ลบรูปโปรไฟล์เรียบร้อย");
+  } catch (err: any) {
+    console.error(err);
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "ลบรูปโปรไฟล์ไม่สำเร็จ";
+    toast.error(msg);
   }
 }
 
 /* ========== Actions ========== */
 
-// ตอนนี้ mock บันทึกโปรไฟล์ (ยังไม่ยิง API จริง)
-function handleSaveProfile() {
-  // ในอนาคตให้เรียก API update profile แล้วค่อยอัปเดต store
-  toast.success("บันทึกโปรไฟล์ (ฝั่ง UI) เรียบร้อย");
+async function handleSaveProfile() {
+  if (!auth.token) {
+    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    auth.logout();
+    router.push({ name: "login", query: { expired: "1" } });
+    return;
+  }
+
+  try {
+    savingProfile.value = true;
+    const res = await updateProfile(auth.token, {
+      displayName: profileName.value,
+    });
+
+    (auth as any).displayName = res.displayName;
+    if ((auth as any).setDisplayName) {
+      (auth as any).setDisplayName(res.displayName);
+    }
+
+    toast.success("บันทึกโปรไฟล์เรียบร้อย");
+  } catch (err: any) {
+    console.error(err);
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "บันทึกโปรไฟล์ไม่สำเร็จ";
+    toast.error(msg);
+  } finally {
+    savingProfile.value = false;
+  }
 }
 
 /* เปลี่ยนรหัสผ่าน */

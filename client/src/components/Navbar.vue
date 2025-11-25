@@ -20,10 +20,8 @@
 
       <!-- Desktop nav -->
       <nav class="hidden md:flex items-center gap-4 text-sm">
-
         <!-- Logged-in -->
         <template v-if="isLoggedIn">
-
           <!-- Avatar + dropdown -->
           <div class="relative">
             <button
@@ -33,12 +31,18 @@
             >
               <!-- avatar -->
               <div
-                class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm"
+                class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm overflow-hidden"
               >
-                {{ initials }}
+                <img
+                  v-if="avatarUrl"
+                  :src="avatarUrl"
+                  alt="User avatar"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else>{{ initials }}</span>
               </div>
 
-              <!-- ชื่อ (ไม่แสดงคำว่าโปรไฟล์แล้ว) -->
+              <!-- ชื่อ -->
               <div class="flex flex-col justify-center leading-tight">
                 <span class="text-sm font-semibold text-slate-900">
                   {{ displayNameOrEmail }}
@@ -61,7 +65,10 @@
                   <p class="text-sm font-semibold text-slate-900 truncate">
                     {{ displayNameOrEmail }}
                   </p>
-                  <p v-if="auth.userEmail" class="text-xs text-slate-500 truncate">
+                  <p
+                    v-if="auth.userEmail"
+                    class="text-xs text-slate-500 truncate"
+                  >
                     {{ auth.userEmail }}
                   </p>
                 </div>
@@ -121,10 +128,16 @@
         <button
           v-if="isLoggedIn"
           type="button"
-          class="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm"
+          class="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm overflow-hidden"
           @click="goProfile"
         >
-          {{ initials }}
+          <img
+            v-if="avatarUrl"
+            :src="avatarUrl"
+            alt="User avatar"
+            class="h-full w-full object-cover"
+          />
+          <span v-else>{{ initials }}</span>
         </button>
 
         <button
@@ -173,6 +186,8 @@ const initials = computed(() => {
     : (first.charAt(0) + (parts[1]?.charAt(0) ?? "")).toUpperCase();
 });
 
+const avatarUrl = computed(() => auth.profileImageUrl || "");
+
 const displayNameOrEmail = computed(
   () => auth.displayName || auth.userEmail || "ผู้ใช้งาน"
 );
@@ -180,24 +195,64 @@ const displayNameOrEmail = computed(
 const showProfileMenu = ref(false);
 const isMobileOpen = ref(false);
 
-function goHome() { router.push({ name: "home" }); }
-function goLogin() { router.push({ name: "login" }); }
-function goRegister() { router.push({ name: "register" }); }
-function goDashboard() { router.push({ name: "dashboard" }); }
-function goProfile() { router.push({ name: "profile" }); }
+function goHome() {
+  router.push({ name: "home" });
+}
+function goLogin() {
+  router.push({ name: "login" });
+}
+function goRegister() {
+  router.push({ name: "register" });
+}
+function goDashboard() {
+  router.push({ name: "dashboard" });
+}
+function goProfile() {
+  router.push({ name: "profile" });
+}
 
-function toggleProfileMenu() { showProfileMenu.value = !showProfileMenu.value; }
-function goProfileFromMenu() { showProfileMenu.value = false; goProfile(); }
-function goDashboardFromMenu() { showProfileMenu.value = false; goDashboard(); }
-function handleLogoutFromMenu() { showProfileMenu.value = false; handleLogout(); }
+function toggleProfileMenu() {
+  showProfileMenu.value = !showProfileMenu.value;
+}
+function goProfileFromMenu() {
+  showProfileMenu.value = false;
+  goProfile();
+}
+function goDashboardFromMenu() {
+  showProfileMenu.value = false;
+  goDashboard();
+}
+function handleLogoutFromMenu() {
+  showProfileMenu.value = false;
+  handleLogout();
+}
 
-function toggleMobile() { isMobileOpen.value = !isMobileOpen.value; }
-function closeMobile() { isMobileOpen.value = false; }
-function goLoginMobile() { closeMobile(); goLogin(); }
-function goRegisterMobile() { closeMobile(); goRegister(); }
-function goDashboardMobile() { closeMobile(); goDashboard(); }
-function goProfileMobile() { closeMobile(); goProfile(); }
-function handleLogoutMobile() { closeMobile(); handleLogout(); }
+function toggleMobile() {
+  isMobileOpen.value = !isMobileOpen.value;
+}
+function closeMobile() {
+  isMobileOpen.value = false;
+}
+function goLoginMobile() {
+  closeMobile();
+  goLogin();
+}
+function goRegisterMobile() {
+  closeMobile();
+  goRegister();
+}
+function goDashboardMobile() {
+  closeMobile();
+  goDashboard();
+}
+function goProfileMobile() {
+  closeMobile();
+  goProfile();
+}
+function handleLogoutMobile() {
+  closeMobile();
+  handleLogout();
+}
 
 function handleLogout() {
   auth.logout();

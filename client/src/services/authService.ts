@@ -11,6 +11,7 @@ export interface AuthResponse {
   userId: number;
   email: string;
   displayName: string;
+  profileImageUrl?: string | null;
 }
 
 export interface LoginPayload {
@@ -29,33 +30,25 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
-// ==========================
-// LOGIN
-// ==========================
-export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  const { data } = await axios.post<AuthResponse>(
-    `${API_BASE_URL}/api/auth/login`,
-    payload
-  );
-  return data;
+export interface UpdateProfilePayload {
+  displayName: string;
 }
 
 // ==========================
-// REGISTER
+// Auth APIs
 // ==========================
+export async function login(payload: LoginPayload): Promise<AuthResponse> {
+  const res = await axios.post(`${API_BASE_URL}/api/auth/login`, payload);
+  return res.data as AuthResponse;
+}
+
 export async function register(
   payload: RegisterPayload
 ): Promise<AuthResponse> {
-  const { data } = await axios.post<AuthResponse>(
-    `${API_BASE_URL}/api/auth/register`,
-    payload
-  );
-  return data;
+  const res = await axios.post(`${API_BASE_URL}/api/auth/register`, payload);
+  return res.data as AuthResponse;
 }
 
-// ==========================
-// CHANGE PASSWORD
-// ==========================
 export async function changePassword(
   token: string,
   payload: ChangePasswordPayload
@@ -70,8 +63,46 @@ export async function changePassword(
     }
   );
 
-  // ถ้าสำเร็จ backend จะส่ง 200/204
   if (res.status !== 200 && res.status !== 204) {
     throw new Error("เปลี่ยนรหัสผ่านไม่สำเร็จ");
   }
+}
+
+export async function updateProfile(
+  token: string,
+  payload: UpdateProfilePayload
+): Promise<AuthResponse> {
+  const res = await axios.put(`${API_BASE_URL}/api/auth/profile`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data as AuthResponse;
+}
+
+export async function uploadProfilePicture(
+  token: string,
+  file: File
+): Promise<AuthResponse> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await axios.post(
+    `${API_BASE_URL}/api/auth/profile-picture`,
+    form,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return res.data as AuthResponse;
+}
+
+export async function deleteProfilePicture(token: string): Promise<void> {
+  await axios.delete(`${API_BASE_URL}/api/auth/profile-picture`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
