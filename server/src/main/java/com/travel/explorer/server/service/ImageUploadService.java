@@ -20,29 +20,41 @@ public class ImageUploadService {
     private final Cloudinary cloudinary;
 
     /**
-     * อัปโหลดรูปไป Cloudinary และคืนค่า secure_url กลับมา
+     * ============================
+     * ใช้สำหรับอัปโหลดรูป “ทริป”
+     * โฟลเดอร์: travel-explorer/trips
+     * ============================
      */
     public String uploadImage(MultipartFile file) {
+        return uploadImageToFolder(file, TRIP_FOLDER);
+    }
+
+    /**
+     * ============================
+     * อัปโหลดรูปไป Cloudinary โดยกำหนดโฟลเดอร์เองได้
+     * เช่น: travel-explorer/profile/12
+     * ============================
+     */
+    public String uploadImageToFolder(MultipartFile file, String folder) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File must not be null or empty");
         }
 
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> uploadResult = (Map<String, Object>) cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            // แยกโฟลเดอร์เก็บรูป
-                            "folder", TRIP_FOLDER
-                    )
-            );
+            Map<String, Object> uploadResult =
+                    (Map<String, Object>) cloudinary.uploader().upload(
+                            file.getBytes(),
+                            ObjectUtils.asMap(
+                                    "folder", folder  // <-- ใช้โฟลเดอร์ที่ส่งเข้ามา
+                            )
+                    );
 
             Object secureUrlObj = uploadResult.get("secure_url");
             if (secureUrlObj == null) {
                 throw new IllegalStateException("Cloudinary did not return secure_url");
             }
 
-            // secure_url = URL แบบ HTTPS
             return secureUrlObj.toString();
 
         } catch (Exception e) {
@@ -52,9 +64,6 @@ public class ImageUploadService {
 
     /**
      * ลบรูปออกจาก Cloudinary ตาม URL ที่เก็บไว้ใน DB
-     *
-     * @param imageUrl secure_url จาก Cloudinary
-     * @return true ถ้าลบสำเร็จ หรือรูปไม่เจออยู่แล้ว / false ถ้า URL ไม่ถูกต้อง
      */
     public boolean deleteImage(String imageUrl) {
         if (imageUrl == null || imageUrl.isBlank()) {
@@ -64,18 +73,18 @@ public class ImageUploadService {
         try {
             String publicId = extractPublicIdFromUrl(imageUrl);
             if (publicId == null || publicId.isBlank()) {
-                // URL ไม่ตรง format ของ Cloudinary
                 return false;
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().destroy(
-                    publicId,
-                    ObjectUtils.emptyMap()
-            );
+            Map<String, Object> result =
+                    (Map<String, Object>) cloudinary.uploader().destroy(
+                            publicId,
+                            ObjectUtils.emptyMap()
+                    );
 
             Object status = result.get("result");
-            // Cloudinary จะคืนค่า "ok" ถ้าลบสำเร็จ, "not found" ถ้าไม่มีไฟล์นี้อยู่แล้ว
+
             if (status == null) return false;
 
             String s = status.toString();
@@ -87,15 +96,11 @@ public class ImageUploadService {
     }
 
     /**
-     * ดึง public_id จาก secure_url ของ Cloudinary
-     * ตัวอย่าง:
-     *   https://res.cloudinary.com/<cloud>/image/upload/v123456789/travel-explorer/trips/abc123.jpg
-     *   -> public_id = travel-explorer/trips/abc123
+     * ดึง public_id จาก Cloudinary URL
      */
     private String extractPublicIdFromUrl(String imageUrl) {
         try {
             URL url = new URL(imageUrl);
-            // เช่น /<cloud>/image/upload/v123456789/travel-explorer/trips/abc123.jpg
             String path = url.getPath();
 
             int idx = path.indexOf(UPLOAD_MARKER);
@@ -103,16 +108,15 @@ public class ImageUploadService {
                 throw new IllegalArgumentException("Invalid Cloudinary URL format");
             }
 
-            // ส่วนหลัง /upload/
-            String afterUpload = path.substring(idx + UPLOAD_MARKER.length()); // v123456789/travel-explorer/trips/abc123.jpg
+            String afterUpload = path.substring(idx + UPLOAD_MARKER.length());
 
             String[] parts = afterUpload.split("/");
             int startIndex = 0;
 
-            // ถ้าส่วนแรกเป็น version (v12345...) ให้ข้าม
             if (parts.length > 0 && parts[0].startsWith("v")) {
                 String maybeNumber = parts[0].substring(1);
-                if (!maybeNumber.isEmpty() && maybeNumber.chars().allMatch(Character::isDigit)) {
+                if (!maybeNumber.isEmpty() &&
+                        maybeNumber.chars().allMatch(Character::isDigit)) {
                     startIndex = 1;
                 }
             }
@@ -124,12 +128,9 @@ public class ImageUploadService {
             StringBuilder sb = new StringBuilder();
             for (int i = startIndex; i < parts.length; i++) {
                 sb.append(parts[i]);
-                if (i < parts.length - 1) {
-                    sb.append("/");
-                }
+                if (i < parts.length - 1) sb.append("/");
             }
 
-            // ตัดนามสกุลไฟล์ออก (.jpg, .png, ...)
             String withExt = sb.toString();
             int dotIdx = withExt.lastIndexOf('.');
             if (dotIdx > 0) {

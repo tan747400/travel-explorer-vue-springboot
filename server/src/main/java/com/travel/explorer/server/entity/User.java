@@ -6,10 +6,10 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "users")
-@Data                       // ให้ getter/setter + toString + equals + hashCode
-@NoArgsConstructor          // JPA ต้องมี no-arg constructor
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-@Builder                    // ใช้สร้าง object แบบ builder
+@Builder
 public class User {
 
     @Id
@@ -24,6 +24,10 @@ public class User {
 
     @Column(name = "display_name", length = 100)
     private String displayName;
+
+    // รูปโปรไฟล์ (URL จาก Cloudinary)
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime createdAt;

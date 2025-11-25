@@ -6,8 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor       
-@AllArgsConstructor      
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class AuthResponse {
 
@@ -15,4 +15,7 @@ public class AuthResponse {
     private Long userId;
     private String email;
     private String displayName;
+
+    // เพิ่ม field ส่ง URL รูปโปรไฟล์ไปให้ frontend
+    private String profileImageUrl;
 }
