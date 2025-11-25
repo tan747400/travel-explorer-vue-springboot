@@ -25,26 +25,27 @@ public class JwtService {
         this.jwtProperties = jwtProperties;
     }
 
+    /**
+     * เตรียม signing key เมื่อ Spring Boot start
+     */
     @PostConstruct
     public void init() {
         String secret = jwtProperties.getSecret();
         System.out.println(">>> JWT_SECRET loaded = " + secret);
 
-        // ใช้ secret แบบ plain text ไม่ต้อง Base64
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
 
-        // ให้ยาวพอสำหรับ HMAC-SHA (อย่างน้อย 32 bytes)
+        // HMAC-SHA256 ต้องใช้ความยาว >= 32 bytes
         if (keyBytes.length < 32) {
             keyBytes = Arrays.copyOf(keyBytes, 32);
+            System.out.println(">>> JWT_SECRET too short, padded to 32 bytes");
         }
 
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     /**
-     * สร้าง JWT token พร้อม claims เพิ่มเติม
-     * - subject: ใช้เก็บ email (หรือ user identifier)
-     * - claims: ใช้เก็บข้อมูลเพิ่ม เช่น role, displayName ฯลฯ
+     * สร้าง JWT พร้อม claims เพิ่มเติม
      */
     public String generateToken(String subject, Map<String, Object> claims) {
         long now = System.currentTimeMillis();
@@ -61,23 +62,21 @@ public class JwtService {
                 .compact();
     }
 
-    /** helper แบบไม่ส่ง claims เพิ่ม */
     public String generateToken(String subject) {
         return generateToken(subject, Map.of());
     }
 
     // =======================
-    // ฝั่งอ่านข้อมูลจาก token
+    // Extract claims
     // =======================
 
-    /** ดึง email (subject) ออกจาก token */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+        return resolver.apply(claims);
     }
 
     private Claims extractAllClaims(String token) {
@@ -86,5 +85,22 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    // =======================
+    // Validate token
+    // =======================
+
+    public boolean isTokenValid(String token, String email) {
+        try {
+            String username = extractUsername(token);
+            return username.equals(email) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 }

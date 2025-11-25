@@ -11,16 +11,10 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
-
-    // ถ้ามี BCryptPasswordEncoder เป็น @Bean อยู่แล้ว สามารถรับจาก constructor แทนได้
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder;  // รับจาก Spring container
 
     /**
-     * เปลี่ยนรหัสผ่านของ user โดยตรวจสอบรหัสผ่านเดิมก่อน
-     *
-     * @param user            ผู้ใช้ปัจจุบัน (ดึงจาก token แล้ว)
-     * @param currentPassword รหัสผ่านเดิม
-     * @param newPassword     รหัสผ่านใหม่
+     * เปลี่ยนรหัสผ่านโดยตรวจสอบรหัสผ่านเดิมก่อน
      */
     public void changePassword(User user, String currentPassword, String newPassword) {
 
@@ -32,15 +26,19 @@ public class AuthService {
             throw new IllegalArgumentException("กรุณากรอกรหัสผ่านใหม่");
         }
 
-        if (newPassword.length() < 6) {
-            throw new IllegalArgumentException("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
-        }
-
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("รหัสผ่านเดิมไม่ถูกต้อง");
         }
 
-        // ตั้งรหัสผ่านใหม่
+        if (currentPassword.equals(newPassword)) {
+            throw new IllegalArgumentException("รหัสผ่านใหม่ต้องไม่เหมือนกับรหัสผ่านเดิม");
+        }
+
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+        }
+
+        // บันทึกรหัสผ่านใหม่
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }

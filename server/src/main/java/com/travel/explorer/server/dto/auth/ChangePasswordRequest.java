@@ -13,6 +13,10 @@ public class ChangePasswordRequest {
     private String currentPassword;
 
     @NotBlank(message = "newPassword is required")
-    @Size(min = 6, max = 100, message = "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร และไม่เกิน 100 ตัวอักษร")
+    @Size(
+        min = 6,
+        max = 100,
+        message = "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 และไม่เกิน 100 ตัวอักษร"
+    )
     private String newPassword;
 }

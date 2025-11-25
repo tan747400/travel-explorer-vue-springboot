@@ -13,12 +13,12 @@ public class JwtProperties {
     private String secret;
 
     /**
-     * อายุ access token (ms)
+     * อายุ access token (มิลลิวินาที)
      */
     private long expiration;
 
     /**
-     * อายุ refresh token (ms) – ยังไม่ใช้ตอนนี้ แต่อ่านเก็บไว้
+     * อายุ refresh token (มิลลิวินาที) – เผื่อใช้ในอนาคต
      */
     private long refreshExpiration;
 
