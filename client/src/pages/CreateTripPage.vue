@@ -104,9 +104,10 @@
               <input
                 v-model="latitude"
                 type="number"
-                step="0.000001"
+                step="any"
+                inputmode="decimal"
                 class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-                placeholder="เช่น 66.5039"
+                placeholder="เช่น 19.823787130277466"
               />
             </div>
 
@@ -117,9 +118,10 @@
               <input
                 v-model="longitude"
                 type="number"
-                step="0.000001"
+                step="any"
+                inputmode="decimal"
                 class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
-                placeholder="เช่น 25.7294"
+                placeholder="เช่น 99.76391418182524"
               />
             </div>
           </div>

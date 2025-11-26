@@ -34,13 +34,13 @@
           </div>
 
           <div class="flex flex-col items-end gap-2">
-            <!-- ปุ่มกลับ (ฉลาด: ถ้ามี query แสดง "กลับไปผลการค้นหาเดิม") -->
+            <!-- ปุ่มกลับ -->
             <button
               type="button"
               class="text-sm text-slate-600 hover:underline"
               @click="goBackSmart"
             >
-              {{ hasSearchQuery ? "← กลับไปผลการค้นหาเดิม" : "← กลับหน้าหลัก" }}
+              {{ backButtonLabel }}
             </button>
 
             <!-- ปุ่มจัดการทริป (เฉพาะเจ้าของเท่านั้น) -->
@@ -247,6 +247,11 @@ const deleting = ref(false);
 const showDeleteModal = ref(false);
 
 /**
+ * มาจาก Dashboard ไหม? ดูจาก query ?from=dashboard
+ */
+const fromDashboard = computed(() => route.query.from === "dashboard");
+
+/**
  * query สำหรับ back-to-search (เก็บแค่แบบ string ที่จำเป็น)
  */
 const searchQueryForBack = computed(() => {
@@ -270,6 +275,18 @@ const searchQueryForBack = computed(() => {
 const hasSearchQuery = computed(
   () => Object.keys(searchQueryForBack.value).length > 0
 );
+
+/**
+ * ข้อความบนปุ่มย้อนกลับ
+ * - จาก Dashboard → "กลับไป Dashboard"
+ * - จากผลการค้นหาเดิม → "กลับไปผลการค้นหาเดิม"
+ * - อื่น ๆ → "กลับหน้าหลัก"
+ */
+const backButtonLabel = computed(() => {
+  if (fromDashboard.value) return "← กลับไป Dashboard";
+  if (hasSearchQuery.value) return "← กลับไปผลการค้นหาเดิม";
+  return "← กลับหน้าหลัก";
+});
 
 const currentMainImage = computed(() => {
   if (!trip.value?.photos?.length) return "";
@@ -326,10 +343,16 @@ function selectPhoto(idx: number) {
 
 /**
  * ปุ่มกลับแบบฉลาด:
- * - ถ้ามี keyword/province/tag ใน query → กลับไปหน้า Home พร้อม query เดิม (back-to-search)
- * - ถ้าไม่มี → ถ้ามี history ให้ router.back() / ไม่มีก็พาไปหน้า Home
+ * - ถ้ามาจาก Dashboard ( ?from=dashboard ) → กลับไปหน้า dashboard
+ * - ถ้ามี keyword/province/tag ใน query → กลับไปหน้า Home พร้อม query เดิม (ผลการค้นหาเดิม)
+ * - ถ้าไม่มีอะไรเลย → ถ้ามี history ให้ router.back() / ไม่มีก็พาไปหน้า Home
  */
 function goBackSmart() {
+  if (fromDashboard.value) {
+    router.push({ name: "dashboard" });
+    return;
+  }
+
   if (hasSearchQuery.value) {
     router.push({
       name: "home",
@@ -382,7 +405,12 @@ async function confirmDeleteModal() {
     deleting.value = true;
     await deleteTrip(trip.value.id, auth.token);
     toast.success("ลบทริปสำเร็จแล้ว 🗑️");
-    router.push({ name: "dashboard" });
+
+    if (fromDashboard.value) {
+      router.push({ name: "dashboard" });
+    } else {
+      router.push({ name: "home" });
+    }
   } catch (err: any) {
     console.error(err);
 

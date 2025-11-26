@@ -112,7 +112,8 @@
               <input
                 v-model="latitude"
                 type="number"
-                step="0.000001"
+                step="any"
+                inputmode="decimal"
                 class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
@@ -124,7 +125,8 @@
               <input
                 v-model="longitude"
                 type="number"
-                step="0.000001"
+                step="any"
+                inputmode="decimal"
                 class="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
@@ -294,7 +296,7 @@ import {
   getTripById,
   updateTrip,
   uploadTripPhotos,
-  deleteTripPhoto, // 👈 ฟังก์ชันเรียก API ลบรูป
+  deleteTripPhoto,
 } from "@/services/tripService";
 import type { Trip } from "@/types/trip";
 
@@ -492,7 +494,8 @@ async function handleSubmit() {
     trip.value = updated; // sync state ทริป
 
     toast.success("แก้ไขทริปสำเร็จ 🎉");
-    router.push({ name: "dashboard" });
+    // ไปหน้า trip-detail ของทริปนี้
+    router.push({ name: "trip-detail", params: { id: tripId } });
   } catch (err: any) {
     console.error(err);
 
@@ -608,7 +611,6 @@ async function confirmDeletePhoto() {
   try {
     deletingPhoto.value = true;
 
-    // เรียก backend ให้ลบรูปออกจาก Cloudinary + DB
     const updated = await deleteTripPhoto(
       tripId,
       photoToDelete.value,

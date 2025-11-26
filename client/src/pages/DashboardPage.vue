@@ -268,7 +268,11 @@ function goCreateTrip() {
 }
 
 function goToDetail(id: number) {
-  router.push({ name: "trip-detail", params: { id } });
+  router.push({
+    name: "trip-detail",
+    params: { id },
+    query: { from: "dashboard" }, // 👈 ตรงนี้คือจุดสำคัญ
+  });
 }
 
 function goToEdit(id: number) {
