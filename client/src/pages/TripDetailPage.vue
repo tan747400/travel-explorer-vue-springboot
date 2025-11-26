@@ -107,11 +107,9 @@
                   :src="p"
                   :alt="`photo-${idx}`"
                   class="w-full h-full object-cover transition-opacity"
-                  :class="
-                    idx === mainImageIndex
-                      ? 'opacity-100'
-                      : 'opacity-80 group-hover:opacity-100'
-                  "
+                  :class="idx === mainImageIndex
+                    ? 'opacity-100'
+                    : 'opacity-80 group-hover:opacity-100'"
                 />
                 <span
                   v-if="idx === mainImageIndex"
@@ -198,6 +196,7 @@
               type="button"
               class="px-4 py-2 rounded-lg border text-slate-600 hover:bg-slate-50"
               @click="closeDeleteModal"
+              :disabled="deleting"
             >
               ยกเลิก
             </button>
@@ -230,11 +229,13 @@ import EmptyState from "@/components/state/EmptyState.vue";
 
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
+import { useSessionExpired } from "@/composables/useSessionExpired";
 
 const toast = useToast();
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+const { handleSessionExpired } = useSessionExpired();
 
 const trip = ref<Trip | null>(null);
 const loading = ref(false);
@@ -245,6 +246,33 @@ const deleting = ref(false);
 
 // popup ลบ
 const showDeleteModal = ref(false);
+
+/* helper: ตรวจ token ผิด / หมดอายุไหม */
+function isTokenInvalidOrExpired(token: string | null | undefined): boolean {
+  if (!token) return true;
+
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+
+    const payloadPart = parts[1];
+    if (!payloadPart) return true;
+
+    const payloadBase64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(payloadBase64);
+    const payload = JSON.parse(json) as { exp?: number };
+
+    if (!payload.exp) {
+      // ไม่มี exp ให้ไปลุ้น 401 จาก backend แทน
+      return false;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp < now;
+  } catch {
+    return true;
+  }
+}
 
 /**
  * มาจาก Dashboard ไหม? ดูจาก query ?from=dashboard
@@ -278,9 +306,6 @@ const hasSearchQuery = computed(
 
 /**
  * ข้อความบนปุ่มย้อนกลับ
- * - จาก Dashboard → "กลับไป Dashboard"
- * - จากผลการค้นหาเดิม → "กลับไปผลการค้นหาเดิม"
- * - อื่น ๆ → "กลับหน้าหลัก"
  */
 const backButtonLabel = computed(() => {
   if (fromDashboard.value) return "← กลับไป Dashboard";
@@ -342,10 +367,7 @@ function selectPhoto(idx: number) {
 }
 
 /**
- * ปุ่มกลับแบบฉลาด:
- * - ถ้ามาจาก Dashboard ( ?from=dashboard ) → กลับไปหน้า dashboard
- * - ถ้ามี keyword/province/tag ใน query → กลับไปหน้า Home พร้อม query เดิม (ผลการค้นหาเดิม)
- * - ถ้าไม่มีอะไรเลย → ถ้ามี history ให้ router.back() / ไม่มีก็พาไปหน้า Home
+ * ปุ่มกลับแบบฉลาด
  */
 function goBackSmart() {
   if (fromDashboard.value) {
@@ -373,15 +395,6 @@ function goEdit() {
   router.push({ name: "trip-edit", params: { id: trip.value.id } });
 }
 
-function goLoginExpired() {
-  auth.logout();
-  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-  router.push({
-    name: "login",
-    query: { expired: "1", redirect: router.currentRoute.value.fullPath },
-  });
-}
-
 /* popup ลบ */
 function openDeleteModal() {
   if (!isOwner.value) return;
@@ -389,15 +402,18 @@ function openDeleteModal() {
 }
 
 function closeDeleteModal() {
+  if (deleting.value) return;
   showDeleteModal.value = false;
 }
 
+/* ลบทริป */
 async function confirmDeleteModal() {
   if (!trip.value) return;
 
-  if (!auth.token) {
-    toast.error("ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-    goLoginExpired();
+  // ลบได้เฉพาะตอนที่ล็อกอิน + token ยังดีอยู่
+  if (auth.isLoggedIn && isTokenInvalidOrExpired(auth.token)) {
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -414,23 +430,25 @@ async function confirmDeleteModal() {
   } catch (err: any) {
     console.error(err);
 
-    if (err?.status === 401) {
-      goLoginExpired();
+    if (err?.response?.status === 401) {
+      handleSessionExpired();
       return;
     }
-    if (err?.status === 403) {
+    if (err?.response?.status === 403) {
       toast.error("คุณไม่สามารถลบทริปของคนอื่นได้");
       return;
     }
 
-    toast.error(err.message || "ลบทริปไม่สำเร็จ");
+    toast.error(
+      err?.response?.data?.message || err.message || "ลบทริปไม่สำเร็จ"
+    );
   } finally {
     deleting.value = false;
     closeDeleteModal();
   }
 }
 
-/* โหลดข้อมูลทริป */
+/* โหลดข้อมูลทริป (public – ไม่ใช้ token) */
 async function loadTrip() {
   loading.value = true;
   error.value = "";
@@ -441,7 +459,8 @@ async function loadTrip() {
     mainImageIndex.value = 0;
   } catch (err: any) {
     console.error(err);
-    error.value = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    error.value =
+      err?.response?.data?.message || err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
     toast.error(error.value);
   } finally {
     loading.value = false;
@@ -450,6 +469,14 @@ async function loadTrip() {
 
 onMounted(() => {
   window.scrollTo({ top: 0, behavior: "auto" });
+
+  // ✅ ถ้าผู้ใช้ "ล็อกอินอยู่" + token พัง/หมดอายุ → toast + เด้ง login
+  if (auth.isLoggedIn && isTokenInvalidOrExpired(auth.token)) {
+    handleSessionExpired();
+    return;
+  }
+
+  // ถ้าไม่ได้ login หรือ token ยังดี → แค่โหลดทริปเฉย ๆ
   loadTrip();
 });
 </script>

@@ -24,10 +24,7 @@
       <EditTripSkeleton v-if="loading && !trip" />
 
       <!-- Error ตอนโหลดข้อมูลครั้งแรก -->
-      <p
-        v-else-if="!trip && error"
-        class="text-sm text-red-500 mb-4"
-      >
+      <p v-else-if="!trip && error" class="text-sm text-red-500 mb-4">
         {{ error }}
       </p>
 
@@ -36,10 +33,7 @@
         v-else
         class="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 sm:px-6 py-5"
       >
-        <form
-          class="space-y-4"
-          @submit.prevent="handleSubmit"
-        >
+        <form class="space-y-4" @submit.prevent="handleSubmit">
           <!-- Title -->
           <div>
             <label class="block text-sm font-medium mb-1">
@@ -182,10 +176,7 @@
                 </button>
               </div>
             </div>
-            <p
-              v-else
-              class="text-xs text-gray-500 mb-3"
-            >
+            <p v-else class="text-xs text-gray-500 mb-3">
               ยังไม่มีรูปภาพในทริปนี้ ลองอัปโหลดรูปดูนะ
             </p>
 
@@ -302,12 +293,14 @@ import type { Trip } from "@/types/trip";
 
 import EditTripSkeleton from "@/components/state/EditTripSkeleton.vue";
 import { useToast } from "vue-toastification";
+import { useSessionExpired } from "@/composables/useSessionExpired";
 
 const toast = useToast();
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const { handleSessionExpired } = useSessionExpired();
 
 const tripId = Number(route.params.id);
 
@@ -335,6 +328,30 @@ const showDeletePhotoModal = ref(false);
 const photoToDelete = ref<string | null>(null);
 const deletingPhoto = ref(false);
 
+// helper ตรวจ token
+function isTokenInvalidOrExpired(token: string | null | undefined): boolean {
+  if (!token) return true;
+
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+
+    const payloadPart = parts[1];
+    if (!payloadPart) return true;
+
+    const payloadBase64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(payloadBase64);
+    const payload = JSON.parse(json) as { exp?: number };
+
+    if (!payload.exp) return false; // ไม่มี exp ก็ให้ไปลุ้น 401 จาก backend
+
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp < now;
+  } catch {
+    return true;
+  }
+}
+
 // มีพิกัดไหม
 const hasLocation = computed(() => {
   if (!latitude.value || !longitude.value) return false;
@@ -351,21 +368,7 @@ const mapEmbedUrl = computed(() => {
   return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`;
 });
 
-// token หมดอายุ
-function goLoginExpired() {
-  auth.logout();
-  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-
-  router.push({
-    name: "login",
-    query: {
-      expired: "1",
-      redirect: router.currentRoute.value.fullPath,
-    },
-  });
-}
-
-// validation
+// validation ฟอร์ม
 function validateForm(): boolean {
   const titleTrim = title.value.trim();
   const provinceTrim = province.value.trim();
@@ -434,7 +437,13 @@ function validateForm(): boolean {
   return true;
 }
 
+// ตอนเข้าเพจ: ถ้า token พัง/หมดอายุ → เด้งออกเลย
 onMounted(async () => {
+  if (isTokenInvalidOrExpired(auth.token)) {
+    handleSessionExpired();
+    return;
+  }
+
   try {
     loading.value = true;
     const loaded = await getTripById(tripId);
@@ -449,7 +458,8 @@ onMounted(async () => {
       loaded.longitude != null ? String(loaded.longitude) : "";
   } catch (err: any) {
     console.error(err);
-    const message = err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
+    const message =
+      err?.response?.data?.message || err.message || "โหลดข้อมูลทริปไม่สำเร็จ";
     error.value = message;
     toast.error(message);
   } finally {
@@ -460,11 +470,9 @@ onMounted(async () => {
 async function handleSubmit() {
   error.value = "";
 
-  if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    goLoginExpired();
+  if (isTokenInvalidOrExpired(auth.token)) {
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -491,26 +499,26 @@ async function handleSubmit() {
       longitude: longitude.value ? Number(longitude.value) : null,
     });
 
-    trip.value = updated; // sync state ทริป
+    trip.value = updated;
 
     toast.success("แก้ไขทริปสำเร็จ 🎉");
-    // ไปหน้า trip-detail ของทริปนี้
     router.push({ name: "trip-detail", params: { id: tripId } });
   } catch (err: any) {
     console.error(err);
 
-    if (err?.status === 401) {
-      goLoginExpired();
+    if (err?.response?.status === 401) {
+      handleSessionExpired();
       return;
     }
-    if (err?.status === 403) {
+    if (err?.response?.status === 403) {
       const msg = "คุณสามารถแก้ไขทริปที่คุณสร้างเองเท่านั้น";
       error.value = msg;
       toast.error(msg);
       return;
     }
 
-    const message = err.message || "เกิดข้อผิดพลาดในการบันทึกทริป";
+    const message =
+      err?.response?.data?.message || err.message || "เกิดข้อผิดพลาดในการบันทึกทริป";
     error.value = message;
     toast.error(message);
   } finally {
@@ -544,11 +552,9 @@ async function handleUploadPhotos() {
     return;
   }
 
-  if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    goLoginExpired();
+  if (isTokenInvalidOrExpired(auth.token)) {
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -563,7 +569,6 @@ async function handleUploadPhotos() {
     uploadFiles.value = [];
     uploadError.value = "";
 
-    // ล้าง input file จริง ๆ
     if (fileInputRef.value) {
       fileInputRef.value.value = "";
     }
@@ -572,12 +577,13 @@ async function handleUploadPhotos() {
   } catch (err: any) {
     console.error(err);
 
-    if (err?.status === 401) {
-      goLoginExpired();
+    if (err?.response?.status === 401) {
+      handleSessionExpired();
       return;
     }
 
-    const message = err.message || "อัปโหลดรูปไม่สำเร็จ";
+    const message =
+      err?.response?.data?.message || err.message || "อัปโหลดรูปไม่สำเร็จ";
     uploadError.value = message;
     toast.error(message);
   } finally {
@@ -600,11 +606,9 @@ function closeDeletePhotoModal() {
 async function confirmDeletePhoto() {
   if (!trip.value || !photoToDelete.value) return;
 
-  if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    goLoginExpired();
+  if (isTokenInvalidOrExpired(auth.token)) {
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -622,12 +626,13 @@ async function confirmDeletePhoto() {
   } catch (err: any) {
     console.error(err);
 
-    if (err?.status === 401) {
-      goLoginExpired();
+    if (err?.response?.status === 401) {
+      handleSessionExpired();
       return;
     }
 
-    const message = err.message || "ลบรูปไม่สำเร็จ";
+    const message =
+      err?.response?.data?.message || err.message || "ลบรูปไม่สำเร็จ";
     uploadError.value = message;
     toast.error(message);
   } finally {

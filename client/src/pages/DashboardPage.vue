@@ -22,10 +22,7 @@
       <DashboardSkeleton v-if="loading" />
 
       <!-- Error -->
-      <ErrorState
-        v-else-if="error"
-        :message="error"
-      />
+      <ErrorState v-else-if="error" :message="error" />
 
       <!-- ยังไม่มีทริปเลย -->
       <section
@@ -199,10 +196,12 @@ import ErrorState from "@/components/state/ErrorState.vue";
 import DashboardSkeleton from "@/components/state/DashboardSkeleton.vue";
 
 import { useToast } from "vue-toastification";
+import { useSessionExpired } from "@/composables/useSessionExpired";
 
 const toast = useToast();
 const auth = useAuthStore();
 const router = useRouter();
+const { handleSessionExpired } = useSessionExpired();
 
 const trips = ref<Trip[]>([]);
 const loading = ref(false);
@@ -213,28 +212,13 @@ const deletingId = ref<number | null>(null);
 const showDeleteModal = ref(false);
 const tripToDelete = ref<number | null>(null);
 
-function goLoginExpired() {
-  auth.logout();
-  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-
-  router.push({
-    name: "login",
-    query: {
-      expired: "1",
-      redirect: router.currentRoute.value.fullPath,
-    },
-  });
-}
-
 async function fetchMyTrips() {
   loading.value = true;
   error.value = "";
 
   if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    goLoginExpired();
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     loading.value = false;
     return;
   }
@@ -245,7 +229,7 @@ async function fetchMyTrips() {
     console.error(err);
 
     if (err?.status === 401) {
-      goLoginExpired();
+      handleSessionExpired();
       return;
     }
     if (err?.status === 403) {
@@ -271,7 +255,7 @@ function goToDetail(id: number) {
   router.push({
     name: "trip-detail",
     params: { id },
-    query: { from: "dashboard" }, // 👈 ตรงนี้คือจุดสำคัญ
+    query: { from: "dashboard" },
   });
 }
 
@@ -296,10 +280,8 @@ async function confirmDeleteModal() {
   if (!tripToDelete.value) return;
 
   if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    error.value = message;
-    toast.error(message);
-    goLoginExpired();
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -315,7 +297,7 @@ async function confirmDeleteModal() {
     console.error(err);
 
     if (err?.status === 401) {
-      goLoginExpired();
+      handleSessionExpired();
       return;
     }
     if (err?.status === 403) {

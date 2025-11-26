@@ -201,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from "vue";
+import { ref, onBeforeUnmount, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { useAuthStore } from "@/stores/authStore";
@@ -213,10 +213,12 @@ import {
 
 import { useToast } from "vue-toastification";
 import CreateTripSkeleton from "@/components/state/CreateTripSkeleton.vue";
+import { useSessionExpired } from "@/composables/useSessionExpired";
 
 const toast = useToast();
 const router = useRouter();
 const auth = useAuthStore();
+const { handleSessionExpired } = useSessionExpired();
 
 const title = ref("");
 const province = ref("");
@@ -233,6 +235,37 @@ const previewUrls = ref<string[]>([]);
 
 const loading = ref(false);
 const error = ref("");
+
+/* ---------- helper: ตรวจ token ---------- */
+function isTokenInvalidOrExpired(token: string | null | undefined): boolean {
+  if (!token) return true;
+
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+
+    const payloadPart = parts[1];
+    if (!payloadPart) return true;
+
+    const payloadBase64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(payloadBase64);
+    const payload = JSON.parse(json) as { exp?: number };
+
+    if (!payload.exp) return false; // ไม่มี exp ให้ไปลุ้น 401 จาก backend
+
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp < now;
+  } catch {
+    return true;
+  }
+}
+
+/* ตอนเข้าเพจ: ถ้า token พัง/หมดอายุ ให้เด้งออกเลย */
+onMounted(() => {
+  if (isTokenInvalidOrExpired(auth.token)) {
+    handleSessionExpired();
+  }
+});
 
 // helper: จัดการ preview URLs
 function clearPreviews() {
@@ -256,20 +289,6 @@ function handleFilesChange(event: Event) {
 onBeforeUnmount(() => {
   clearPreviews();
 });
-
-// token หมดอายุ
-function goLoginExpired() {
-  auth.logout();
-  toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-
-  router.push({
-    name: "login",
-    query: {
-      expired: "1",
-      redirect: router.currentRoute.value.fullPath,
-    },
-  });
-}
 
 // validation
 function validateForm(): boolean {
@@ -343,11 +362,10 @@ function validateForm(): boolean {
 async function handleSubmit() {
   error.value = "";
 
-  if (!auth.token) {
-    const message = "ไม่พบโทเคน กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
-    toast.error(message);
-    error.value = message;
-    goLoginExpired();
+  // เช็ค token ก่อน submit
+  if (isTokenInvalidOrExpired(auth.token)) {
+    error.value = "เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง";
+    handleSessionExpired();
     return;
   }
 
@@ -396,18 +414,20 @@ async function handleSubmit() {
   } catch (err: any) {
     console.error(err);
 
-    if (err?.status === 401) {
-      goLoginExpired();
+    if (err?.response?.status === 401) {
+      handleSessionExpired();
       return;
     }
-    if (err?.status === 403) {
+
+    if (err?.response?.status === 403) {
       const msg = "คุณสามารถสร้าง/แก้ไขทริปได้เมื่อเข้าสู่ระบบเท่านั้น";
       error.value = msg;
       toast.error(msg);
       return;
     }
 
-    const message = err.message || "บันทึกทริปไม่สำเร็จ";
+    const message =
+      err?.response?.data?.message || err.message || "บันทึกทริปไม่สำเร็จ";
     toast.error(message);
     error.value = message;
   } finally {

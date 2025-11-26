@@ -112,10 +112,7 @@ const sessionExpired = computed(() => route.query.expired === "1");
 const registeredSuccess = computed(() => route.query.registered === "1");
 
 onMounted(() => {
-  if (sessionExpired.value) {
-    toast.error("เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-  }
-
+  // ไม่ต้อง toast error สำหรับ sessionExpired เพราะ useSessionExpired ทำไปแล้ว
   if (registeredSuccess.value) {
     toast.success("สมัครสมาชิกสำเร็จแล้ว กรุณาเข้าสู่ระบบ");
   }
