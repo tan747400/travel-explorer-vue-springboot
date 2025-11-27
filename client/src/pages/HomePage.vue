@@ -78,7 +78,7 @@
               <button
                 v-if="shouldShowToggle"
                 @click="showAllTags = !showAllTags"
-                class="text-[11px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline"
+                class="text-[12px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline"
               >
                 {{ showAllTags ? "ซ่อนแท็ก" : "ดูแท็กทั้งหมด" }}
               </button>
@@ -91,7 +91,7 @@
               <!-- All -->
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-full border text-[11px] sm:text-xs shadow-sm whitespace-nowrap"
+                class="px-3 py-1.5 rounded-full border text-[12px] sm:text-xs shadow-sm whitespace-nowrap"
                 :class="
                   selectedTag === ''
                     ? 'bg-sky-600 text-white border-sky-600'

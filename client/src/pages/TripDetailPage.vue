@@ -37,7 +37,7 @@
             <!-- ปุ่มกลับ -->
             <button
               type="button"
-              class="text-sm text-slate-600 hover:underline"
+              class="text-sm text-sky-600 hover:text-sky-700 hover:underline"
               @click="goBackSmart"
             >
               {{ backButtonLabel }}
@@ -367,7 +367,7 @@ function selectPhoto(idx: number) {
 }
 
 /**
- * ปุ่มกลับแบบฉลาด
+ * ปุ่มกลับ
  */
 function goBackSmart() {
   if (fromDashboard.value) {
@@ -470,7 +470,7 @@ async function loadTrip() {
 onMounted(() => {
   window.scrollTo({ top: 0, behavior: "auto" });
 
-  // ✅ ถ้าผู้ใช้ "ล็อกอินอยู่" + token พัง/หมดอายุ → toast + เด้ง login
+  // ถ้าผู้ใช้ "ล็อกอินอยู่" + token พัง/หมดอายุ → toast + เด้ง login
   if (auth.isLoggedIn && isTokenInvalidOrExpired(auth.token)) {
     handleSessionExpired();
     return;

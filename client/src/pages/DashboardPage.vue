@@ -1,21 +1,32 @@
 <template>
   <div class="min-h-screen bg-slate-50">
     <div class="max-w-6xl mx-auto px-4 py-10">
-      <!-- Header + ปุ่มเพิ่มทริป -->
-      <div class="flex items-center justify-between mb-4">
+      <!-- Header + ปุ่มกลับ + ปุ่มเพิ่มทริป -->
+      <div class="flex items-start justify-between mb-4">
         <h1 class="text-2xl md:text-3xl font-bold">
           ทริปของฉัน
         </h1>
 
-        <!-- แสดงปุ่มเฉพาะตอนที่มีทริปแล้ว -->
-        <button
-          v-if="trips.length > 0"
-          type="button"
-          class="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm hover:bg-sky-700"
-          @click="goCreateTrip"
-        >
-          + เพิ่มทริปใหม่
-        </button>
+        <!-- ฝั่งขวา: ปุ่มกลับหน้าหลัก + ปุ่มเพิ่มทริป -->
+        <div class="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center text-xs sm:text-sm text-sky-600 hover:text-sky-700 hover:underline"
+            @click="goHome"
+          >
+            ← กลับหน้าหลัก
+          </button>
+
+          <!-- แสดงปุ่มเฉพาะตอนที่มีทริปแล้ว -->
+          <button
+            v-if="trips.length > 0"
+            type="button"
+            class="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm hover:bg-sky-700"
+            @click="goCreateTrip"
+          >
+            + เพิ่มทริปใหม่
+          </button>
+        </div>
       </div>
 
       <!-- Loading: ใช้ Skeleton -->
@@ -245,6 +256,10 @@ async function fetchMyTrips() {
   } finally {
     loading.value = false;
   }
+}
+
+function goHome() {
+  router.push({ name: "home" });
 }
 
 function goCreateTrip() {

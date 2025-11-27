@@ -2,7 +2,7 @@
   <!-- ใช้ min-h-screen ให้ยืดตามความสูงจอ และให้ scroll ได้ปกติ -->
   <div class="min-h-screen bg-slate-50">
     <main
-      class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-10 lg:py-14"
+      class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-12"
     >
       <!-- ถ้ายังไม่ล็อกอิน -->
       <section
@@ -26,63 +26,90 @@
       <!-- ถ้าล็อกอินแล้ว -->
       <section
         v-else
-        class="rounded-3xl bg-white border border-slate-200 shadow-sm px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10"
+        class="rounded-3xl bg-white border border-slate-200 shadow-sm px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-9 space-y-6"
       >
-        <!-- Header: avatar + ชื่อ -->
+        <!-- Header: avatar + ชื่อ + ปุ่มกลับหน้าหลัก -->
         <header
-          class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 border-b border-slate-100 pb-5 mb-6"
+          class="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:pb-5"
         >
           <div
-            class="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md overflow-hidden mx-auto sm:mx-0"
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           >
-            <img
-              v-if="avatarUrl"
-              :src="avatarUrl"
-              alt="Profile avatar"
-              class="h-full w-full object-cover"
-            />
-            <span v-else>
-              {{ initials }}
-            </span>
-          </div>
+            <!-- ซ้าย: avatar + ชื่อ -->
+            <div
+              class="flex items-center gap-4 sm:gap-5 flex-1 min-w-0 justify-center sm:justify-start"
+            >
+              <div
+                class="h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md overflow-hidden"
+              >
+                <img
+                  v-if="avatarUrl"
+                  :src="avatarUrl"
+                  alt="Profile avatar"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else>
+                  {{ initials }}
+                </span>
+              </div>
 
-          <div class="text-center sm:text-left">
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
-              {{ auth.displayName || "ผู้ใช้งาน" }}
-            </h1>
-            <p class="text-sm text-slate-500 mt-0.5">
-              {{ auth.userEmail }}
-            </p>
+              <div class="text-center sm:text-left truncate">
+                <h1
+                  class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 truncate"
+                >
+                  {{ auth.displayName || "ผู้ใช้งาน" }}
+                </h1>
+                <p
+                  class="text-xs sm:text-sm text-slate-500 mt-0.5 truncate max-w-xs sm:max-w-md"
+                >
+                  {{ auth.userEmail }}
+                </p>
+              </div>
+            </div>
+
+            <!-- ขวา: ปุ่มกลับหน้าหลัก -->
+            <div class="flex justify-center sm:justify-end">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-xs sm:text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                @click="goBackHome"
+              >
+                <span>←</span>
+                <span>กลับหน้าหลัก</span>
+              </button>
+            </div>
           </div>
         </header>
 
-        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+        <div
+          class="flex flex-col md:flex-row gap-5 md:gap-7 lg:gap-8 items-stretch"
+        >
           <!-- ซ้าย: เมนูแท็บ -->
-          <aside class="md:w-52 flex-shrink-0">
+          <aside class="md:w-56 flex-shrink-0">
             <nav
-              class="rounded-2xl bg-slate-50 border border-slate-200 shadow-sm py-3"
+              class="rounded-2xl bg-slate-50 border border-slate-200 shadow-sm flex md:flex-col overflow-hidden"
             >
               <button
                 type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
+                class="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm border-b md:border-b-0 md:border-b-transparent md:border-r-4 transition-colors"
                 :class="activeTab === 'profile'
-                  ? 'text-slate-900 font-semibold bg-white border-r-4 border-sky-500'
+                  ? 'text-slate-900 font-semibold bg-white md:border-sky-500'
                   : 'text-slate-600 hover:bg-white'"
                 @click="activeTab = 'profile'"
               >
-                <span class="text-lg">👤</span>
+                <span class="text-base">👤</span>
                 <span>Profile</span>
               </button>
 
               <button
                 type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm"
+                class="flex-1 md:flex-none flex items-center justify-center md:justify-start gap-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm border-b-0 md:border-b-0 md:border-r-4 transition-colors"
                 :class="activeTab === 'password'
-                  ? 'text-slate-900 font-semibold bg-white border-r-4 border-sky-500'
+                  ? 'text-slate-900 font-semibold bg-white md:border-sky-500'
                   : 'text-slate-600 hover:bg-white'"
                 @click="activeTab = 'password'"
               >
-                <span class="text-lg">🔒</span>
+                <span class="text-base">🔒</span>
                 <span>Reset password</span>
               </button>
             </nav>
@@ -90,17 +117,17 @@
 
           <!-- ขวา: เนื้อหาแต่ละแท็บ -->
           <section
-            class="flex-1 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm px-5 sm:px-6 py-5 sm:py-6"
+            class="flex-1 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm px-4 sm:px-6 py-4 sm:py-6"
           >
             <!-- Tab: Profile -->
             <div v-if="activeTab === 'profile'" class="space-y-6">
               <!-- Avatar + upload -->
               <div
-                class="flex flex-col sm:flex-row sm:items-center gap-6 border-b border-slate-100 pb-5"
+                class="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 border-b border-slate-100 pb-5"
               >
                 <div class="relative mx-auto sm:mx-0">
                   <div
-                    class="h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-3xl font-semibold shadow-md overflow-hidden"
+                    class="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-semibold shadow-md overflow-hidden"
                   >
                     <img
                       v-if="avatarUrl"
@@ -130,12 +157,12 @@
                 >
                   <button
                     type="button"
-                    class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-full border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50"
+                    class="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-full border border-slate-300 bg-white text-xs sm:text-sm text-slate-700 hover:bg-slate-50"
                     @click="triggerUpload"
                   >
                     เลือกรูปโปรไฟล์จากเครื่อง
                   </button>
-                  <p class="text-xs text-slate-400">
+                  <p class="text-xs text-slate-400 leading-relaxed">
                     เลือกรูปแล้วจะเห็นตัวอย่างทันที
                     แต่จะอัปโหลดจริงเมื่อกดปุ่ม
                     <span class="font-semibold">Save</span>
@@ -193,7 +220,7 @@
                 <div class="pt-2">
                   <button
                     type="submit"
-                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
                     :disabled="savingProfile"
                   >
                     <span v-if="savingProfile">กำลังบันทึก...</span>
@@ -206,10 +233,10 @@
             <!-- Tab: Reset password -->
             <div v-else class="space-y-6">
               <div class="space-y-1">
-                <h2 class="text-lg font-semibold text-slate-900">
+                <h2 class="text-base sm:text-lg font-semibold text-slate-900">
                   Reset password
                 </h2>
-                <p class="text-xs sm:text-sm text-slate-500">
+                <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
                   เพื่อความปลอดภัย แนะนำให้เปลี่ยนรหัสผ่านเป็นระยะ ๆ
                   และใช้รหัสผ่านที่คาดเดายาก
                 </p>
@@ -274,7 +301,7 @@
                 <div class="pt-2">
                   <button
                     type="submit"
-                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
                     :disabled="changingPassword"
                   >
                     <span v-if="changingPassword">
@@ -294,7 +321,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "vue-toastification";
 import {
@@ -307,6 +334,7 @@ import { useSessionExpired } from "@/composables/useSessionExpired";
 
 const auth = useAuthStore();
 const toast = useToast();
+const router = useRouter();
 const { handleSessionExpired } = useSessionExpired();
 
 /* ========== UI state ========== */
@@ -393,6 +421,11 @@ onMounted(() => {
     handleSessionExpired();
   }
 });
+
+/* ปุ่มกลับหน้าหลัก */
+function goBackHome() {
+  router.push({ name: "home" });
+}
 
 /* ========== Avatar: เลือกรูป + preview (ยังไม่อัปโหลด) ========== */
 function triggerUpload() {
