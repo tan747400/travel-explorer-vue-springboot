@@ -71,7 +71,9 @@
             <div class="flex justify-center sm:justify-end">
               <button
                 type="button"
-                class="inline-flex items-center gap-1 text-xs sm:text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                class="inline-flex items-center gap-1 text-xs sm:text-sm text-sky-600
+                       border-b border-transparent pb-[1px]
+                       hover:text-sky-700 hover:border-sky-700"
                 @click="goBackHome"
               >
                 <span>←</span>

@@ -66,13 +66,18 @@
         {{ shortDesc }}
       </p>
 
-      <!-- ลิงก์ไปหน้า Detail -->
+      <!-- ลิงก์ไปหน้า detail : เส้นใต้ถึงแค่ตัวหนังสือ + ➜ -->
       <RouterLink
         :to="detailLink"
-        class="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 hover:underline mb-1"
+        class="inline-flex text-xs sm:text-sm text-sky-600"
       >
-        ดูรายละเอียดทริป
-        <span class="text-sm">➜</span>
+        <span
+          class="inline-flex items-center gap-1 border-b border-transparent pb-[1px]
+                 hover:text-sky-700 hover:border-sky-600"
+        >
+          <span>ดูรายละเอียดทริป</span>
+          <span>➜</span>
+        </span>
       </RouterLink>
 
       <!-- แท็ก -->
