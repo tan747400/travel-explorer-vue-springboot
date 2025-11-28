@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-    <div class="max-w-6xl mx-auto px-4 py-10">
+    <div class="max-w-6xl mx-auto px-4 py-8 sm:py-10">
       <!-- Loading: ใช้ Skeleton -->
       <TripDetailSkeleton v-if="loading" />
 
@@ -14,75 +14,101 @@
       />
 
       <!-- Content -->
-      <div v-else>
+      <section
+        v-else
+        class="rounded-3xl bg-white border border-slate-200 shadow-sm px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-9 space-y-6"
+      >
         <!-- Header -->
         <header
-          class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-3"
+          class="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:pb-5"
         >
-          <div>
-            <h1 class="text-3xl md:text-4xl font-bold mb-1">
-              {{ trip.title }}
-            </h1>
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <!-- ซ้าย: ชื่อทริป -->
+            <div class="space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  v-if="trip.province"
+                  class="inline-flex items-center rounded-full bg-sky-50 text-sky-700 text-[11px] px-3 py-1 border border-sky-100"
+                >
+                  📍 {{ trip.province }}
+                </span>
+              </div>
 
-            <p class="text-sky-700 text-sm">
-              {{ trip.province || "ไม่ระบุสถานที่" }}
-            </p>
+              <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900">
+                {{ trip.title }}
+              </h1>
 
-            <p class="text-xs text-gray-500 mt-1">
-              สร้างโดย: {{ trip.authorName || "-" }}
-            </p>
-          </div>
+              <div class="space-y-0.5 text-xs sm:text-sm">
+                <p class="text-slate-500">
+                  สร้างโดย
+                  <span class="font-medium text-slate-700">
+                    {{ trip.authorName || "-" }}
+                  </span>
+                </p>
+              </div>
+            </div>
 
-          <div class="flex flex-col items-end gap-2">
-            <!-- ปุ่มกลับ -->
-            <button
-              type="button"
-              class="text-sm text-sky-600 hover:text-sky-700 hover:underline"
-              @click="goBackSmart"
-            >
-              {{ backButtonLabel }}
-            </button>
-
-            <!-- ปุ่มจัดการทริป (เฉพาะเจ้าของเท่านั้น) -->
-            <div
-              v-if="isOwner"
-              class="flex items-center gap-2"
-            >
+            <!-- ขวา: ปุ่มย้อนกลับ + ปุ่มจัดการ -->
+            <div class="flex flex-col items-end gap-2">
+              <!-- ปุ่มกลับ -->
               <button
                 type="button"
-                class="px-3 py-1 rounded-md border border-amber-300 text-xs md:text-sm
-                       text-amber-700 bg-amber-50 hover:bg-amber-100"
-                @click="goEdit"
+                class="inline-flex items-center gap-1 text-xs sm:text-sm text-sky-600
+                       border-b border-transparent pb-[1px]
+                       hover:text-sky-700 hover:border-sky-700"
+                @click="goBackSmart"
               >
-                แก้ไขทริป
+                <span>←</span>
+                <span>{{ backButtonText }}</span>
               </button>
 
-              <button
-                type="button"
-                class="px-3 py-1 rounded-md border border-red-200 text-xs md:text-sm
-                       text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                :disabled="deleting"
-                @click="openDeleteModal"
+              <!-- ปุ่มจัดการทริป (เฉพาะเจ้าของเท่านั้น) -->
+              <div
+                v-if="isOwner"
+                class="flex items-center gap-2"
               >
-                {{ deleting ? "กำลังลบ..." : "ลบทริป" }}
-              </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg border border-amber-300 text-xs md:text-sm
+                         text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                  @click="goEdit"
+                >
+                  แก้ไขทริป
+                </button>
+
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg border border-red-200 text-xs md:text-sm
+                         text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  :disabled="deleting"
+                  @click="openDeleteModal"
+                >
+                  {{ deleting ? "กำลังลบ..." : "ลบทริป" }}
+                </button>
+              </div>
             </div>
           </div>
         </header>
 
+        <!-- รูป + แผนที่ -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Photos -->
-          <section class="lg:col-span-2 space-y-4">
+          <section class="lg:col-span-2 space-y-3">
             <!-- Main Image -->
             <div
               v-if="trip.photos && trip.photos.length > 0"
-              class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
+              class="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"
             >
               <img
                 :src="currentMainImage"
                 :alt="trip.title"
                 class="h-full w-full object-cover"
               />
+              <div
+                class="absolute bottom-3 right-3 rounded-full bg-black/40 text-[11px] text-white px-2.5 py-1 backdrop-blur-sm"
+              >
+                รูปที่ {{ mainImageIndex + 1 }} / {{ trip.photos.length }}
+              </div>
             </div>
             <div
               v-else
@@ -94,13 +120,13 @@
             <!-- Thumbnails -->
             <div
               v-if="trip.photos && trip.photos.length > 1"
-              class="grid grid-cols-3 gap-2"
+              class="flex gap-2 overflow-x-auto pb-1"
             >
               <button
                 v-for="(p, idx) in trip.photos"
                 :key="idx"
                 type="button"
-                class="relative group aspect-[4/3] w-full overflow-hidden rounded-lg bg-slate-100"
+                class="relative group h-20 w-28 sm:h-24 sm:w-32 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100"
                 @click="selectPhoto(idx)"
               >
                 <img
@@ -109,7 +135,7 @@
                   class="w-full h-full object-cover transition-opacity"
                   :class="idx === mainImageIndex
                     ? 'opacity-100'
-                    : 'opacity-80 group-hover:opacity-100'"
+                    : 'opacity-70 group-hover:opacity-100'"
                 />
                 <span
                   v-if="idx === mainImageIndex"
@@ -121,11 +147,13 @@
 
           <!-- Map -->
           <aside class="space-y-3">
-            <h2 class="font-semibold mb-1">แผนที่</h2>
+            <h2 class="font-semibold text-base sm:text-lg text-slate-900">
+              แผนที่ & การเดินทาง
+            </h2>
 
             <div
               v-if="hasLocation"
-              class="rounded-xl overflow-hidden border bg-white"
+              class="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm"
             >
               <iframe
                 :src="mapEmbedUrl"
@@ -137,13 +165,16 @@
                 referrerpolicy="no-referrer-when-downgrade"
               ></iframe>
 
-              <div class="p-3 border-t text-right">
+              <div class="p-3 border-t border-slate-100 text-right">
                 <a
                   :href="mapExternalUrl"
                   target="_blank"
-                  class="text-xs text-sky-600 hover:underline"
+                  class="inline-flex items-center gap-1 text-xs text-sky-600
+                         border-b border-transparent pb-[1px]
+                         hover:text-sky-700 hover:border-sky-700"
                 >
-                  เปิดใน Google Maps ↗
+                  <span>เปิดใน Google Maps</span>
+                  <span class="text-[10px]">↗</span>
                 </a>
               </div>
             </div>
@@ -155,15 +186,17 @@
         </div>
 
         <!-- Description & Tags -->
-        <section class="mt-8 space-y-3">
-          <h2 class="font-semibold text-lg">รายละเอียดสถานที่</h2>
-          <p class="text-sm text-gray-700 leading-relaxed">
+        <section class="pt-4 border-t border-slate-100 space-y-4">
+          <h2 class="font-semibold text-lg text-slate-900">
+            รายละเอียดสถานที่
+          </h2>
+          <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
             {{ trip.description || "ยังไม่มีรายละเอียดของทริปนี้" }}
           </p>
 
           <div
             v-if="trip.tags && trip.tags.length > 0"
-            class="mt-4 flex flex-wrap gap-2"
+            class="flex flex-wrap gap-2"
           >
             <span
               v-for="tag in trip.tags"
@@ -174,7 +207,7 @@
             </span>
           </div>
         </section>
-      </div>
+      </section>
     </div>
 
     <!-- Popup ลบทริป -->
@@ -305,12 +338,12 @@ const hasSearchQuery = computed(
 );
 
 /**
- * ข้อความบนปุ่มย้อนกลับ
+ * ข้อความบนปุ่มย้อนกลับ (ไม่ใส่ลูกศร ให้ template ใส่เอง)
  */
-const backButtonLabel = computed(() => {
-  if (fromDashboard.value) return "← กลับไป Dashboard";
-  if (hasSearchQuery.value) return "← กลับไปผลการค้นหาเดิม";
-  return "← กลับหน้าหลัก";
+const backButtonText = computed(() => {
+  if (fromDashboard.value) return "กลับไป Dashboard";
+  if (hasSearchQuery.value) return "กลับไปผลการค้นหาเดิม";
+  return "กลับหน้าหลัก";
 });
 
 const currentMainImage = computed(() => {

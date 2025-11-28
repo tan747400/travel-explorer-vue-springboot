@@ -3,13 +3,11 @@
     @click="handleCopy"
     title="Copy link"
     aria-label="Copy link"
-    class="copy-btn
-           order-3 self-end mt-3
-           md:absolute md:bottom-4 md:right-4 md:mt-0"
+    class="copy-btn"
   >
     <span class="copy-btn-inner">
       <LinkIcon
-        class="w-4 h-4 md:w-4 md:h-4 text-sky-900"
+        class="w-4 h-4 text-sky-900"
         :stroke-width="2"
       />
     </span>
@@ -42,15 +40,16 @@ async function handleCopy() {
 
 <style scoped>
 .copy-btn {
-  @apply w-11 h-11
-         md:w-10 md:h-10
-         rounded-full
+  /* ไม่กำหนด width / height / position ปล่อยให้ parent control */
+  @apply rounded-full
          flex items-center justify-center
-         transition-all duration-200 ease-out
          cursor-pointer
          border-none
          bg-transparent
-         relative;
+         relative
+         transition-all duration-200 ease-out;
+  width: 100%;
+  height: 100%;
 }
 
 .copy-btn-inner {

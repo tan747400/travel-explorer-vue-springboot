@@ -1,157 +1,206 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-    <div class="max-w-6xl mx-auto px-4 py-10">
-      <!-- Header + ปุ่มกลับ + ปุ่มเพิ่มทริป -->
-      <div class="flex items-start justify-between mb-4">
-        <h1 class="text-2xl md:text-3xl font-bold">
-          ทริปของฉัน
-        </h1>
-
-        <!-- ฝั่งขวา: ปุ่มกลับหน้าหลัก + ปุ่มเพิ่มทริป -->
-        <div class="flex flex-col items-end gap-2">
-          <button
-            type="button"
-            class="inline-flex items-center text-xs sm:text-sm text-sky-600 hover:text-sky-700 hover:underline"
-            @click="goHome"
-          >
-            ← กลับหน้าหลัก
-          </button>
-
-          <!-- แสดงปุ่มเฉพาะตอนที่มีทริปแล้ว -->
-          <button
-            v-if="trips.length > 0"
-            type="button"
-            class="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm hover:bg-sky-700"
-            @click="goCreateTrip"
-          >
-            + เพิ่มทริปใหม่
-          </button>
-        </div>
-      </div>
-
-      <!-- Loading: ใช้ Skeleton -->
+    <div class="max-w-6xl mx-auto px-4 py-8 sm:py-10">
+      <!-- Loading -->
       <DashboardSkeleton v-if="loading" />
 
       <!-- Error -->
       <ErrorState v-else-if="error" :message="error" />
 
-      <!-- ยังไม่มีทริปเลย -->
+      <!-- Content -->
       <section
-        v-else-if="trips.length === 0"
-        class="mt-10 flex justify-center"
+        v-else
+        class="rounded-3xl bg-white border border-slate-200 shadow-sm px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-9 space-y-6"
       >
-        <div
-          class="w-full max-w-xl rounded-3xl border border-dashed border-sky-200
-                 bg-gradient-to-br from-sky-50 via-white to-indigo-50
-                 px-6 py-10 flex flex-col items-center text-center gap-4 shadow-sm"
+        <!-- Header -->
+        <header
+          class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-slate-100 pb-4 sm:pb-5"
         >
-          <!-- วงกลมไอคอน -->
-          <div
-            class="h-20 w-20 rounded-full bg-white shadow flex items-center justify-center mb-1"
-          >
-            <span class="text-4xl">✈️</span>
-          </div>
-
-          <!-- ข้อความหลัก -->
           <div class="space-y-1">
-            <h2 class="text-lg md:text-xl font-semibold text-slate-800">
-              ยังไม่มีทริปที่คุณสร้างเลย
-            </h2>
-            <p class="text-sm text-slate-600">
-              เริ่มบันทึกสถานที่ที่คุณชอบ หรือทริปในฝันของคุณไว้ที่นี่
-              เพื่อให้กลับมาดู / แก้ไข / แชร์ได้ง่าย ๆ ในภายหลัง
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900">
+              ทริปของฉัน
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">
+              {{ trips.length === 0
+                ? "ยังไม่มีทริปที่คุณสร้างไว้ เริ่มวางแผนทริปแรกของคุณได้เลย"
+                : `คุณมีทั้งหมด ${trips.length} ทริปที่สร้างไว้` }}
             </p>
           </div>
 
-          <!-- ตัวอย่างไอเดีย -->
-          <ul class="text-xs text-slate-500 space-y-1">
-            <li>• ทริปเที่ยวกับครอบครัว</li>
-            <li>• คาเฟ่ / ร้านอาหารที่อยากกลับไปซ้ำ</li>
-            <li>• ทริปในฝันที่ยังไม่ได้ไป แต่เริ่มวางแผนไว้ก่อนได้</li>
-          </ul>
-
-          <!-- ปุ่ม CTA -->
-          <button
-            type="button"
-            class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full
-                   bg-sky-600 text-white text-sm font-medium shadow hover:bg-sky-700
-                   transition-colors"
-            @click="goCreateTrip"
-          >
-            <span>เริ่มสร้างทริปแรกของคุณ</span>
-            <span class="text-base">➜</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- มีทริปแล้ว -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <article
-          v-for="trip in trips"
-          :key="trip.id"
-          class="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
-        >
-          <h2 class="font-semibold text-lg mb-1">
-            {{ trip.title }}
-          </h2>
-
-          <p class="text-sm text-sky-700 mb-1">
-            {{ trip.province || "ไม่ระบุสถานที่" }}
-          </p>
-
-          <p class="text-xs text-gray-500 mb-2">
-            สร้างโดย: {{ trip.authorName || "-" }}
-          </p>
-
-          <p class="text-sm text-gray-700 line-clamp-2">
-            {{ trip.description || "ไม่มีรายละเอียดเพิ่มเติม" }}
-          </p>
-
-          <!-- Tags -->
-          <div
-            v-if="trip.tags && trip.tags.length > 0"
-            class="mt-2 flex flex-wrap gap-2"
-          >
-            <span
-              v-for="tag in trip.tags"
-              :key="tag"
-              class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700"
-            >
-              #{{ tag }}
-            </span>
-          </div>
-
-          <!-- ปุ่มจัดการ -->
-          <div class="mt-3 flex items-center justify-between gap-2 text-xs">
+          <!-- ฝั่งขวา: ปุ่มกลับหน้าหลัก + ปุ่มเพิ่มทริป -->
+          <div class="flex flex-col items-end gap-2">
             <button
               type="button"
-              class="px-3 py-1 rounded-md border text-sky-700 hover:bg-sky-50"
-              @click="goToDetail(trip.id)"
+              class="inline-flex items-center gap-1 text-xs sm:text-sm text-sky-600
+                     border-b border-transparent pb-[1px]
+                     hover:text-sky-700 hover:border-sky-700"
+              @click="goHome"
             >
-              ดูรายละเอียด
+              <span>←</span>
+              <span>กลับหน้าหลัก</span>
             </button>
 
-            <div class="flex items-center gap-2">
+            <!-- แสดงปุ่มเฉพาะตอนที่มีทริปแล้ว (กรณีไม่มี ให้ใช้ CTA ด้านล่างแทน) -->
+            <button
+              v-if="trips.length > 0"
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 transition-colors"
+              @click="goCreateTrip"
+            >
+              <span class="text-base leading-none">＋</span>
+              <span>เพิ่มทริปใหม่</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- ยังไม่มีทริปเลย -->
+        <section
+          v-if="trips.length === 0"
+          class="mt-4 flex justify-center"
+        >
+          <div
+            class="w-full max-w-xl rounded-3xl border border-dashed border-sky-200
+                   bg-gradient-to-br from-sky-50 via-white to-indigo-50
+                   px-6 py-10 flex flex-col items-center text-center gap-4 shadow-sm"
+          >
+            <!-- วงกลมไอคอน -->
+            <div
+              class="h-20 w-20 rounded-full bg-white shadow flex items-center justify-center mb-1"
+            >
+              <span class="text-4xl">✈️</span>
+            </div>
+
+            <!-- ข้อความหลัก -->
+            <div class="space-y-1">
+              <h2 class="text-lg md:text-xl font-semibold text-slate-800">
+                ยังไม่มีทริปที่คุณสร้างเลย
+              </h2>
+              <p class="text-sm text-slate-600">
+                เริ่มบันทึกสถานที่ที่คุณชอบ หรือทริปในฝันของคุณไว้ที่นี่
+                เพื่อให้กลับมาดู / แก้ไข / แชร์ได้ง่าย ๆ ในภายหลัง
+              </p>
+            </div>
+
+            <!-- ตัวอย่างไอเดีย -->
+            <ul class="text-xs text-slate-500 space-y-1">
+              <li>• ทริปเที่ยวกับครอบครัว</li>
+              <li>• คาเฟ่ / ร้านอาหารที่อยากกลับไปซ้ำ</li>
+              <li>• ทริปในฝันที่ยังไม่ได้ไป แต่เริ่มวางแผนไว้ก่อนได้</li>
+            </ul>
+
+            <!-- ปุ่ม CTA -->
+            <button
+              type="button"
+              class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full
+                     bg-sky-600 text-white text-sm font-medium shadow hover:bg-sky-700
+                     transition-colors"
+              @click="goCreateTrip"
+            >
+              <span>เริ่มสร้างทริปแรกของคุณ</span>
+              <span class="text-base">➜</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- มีทริปแล้ว -->
+        <section
+          v-else
+          class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"
+        >
+          <article
+            v-for="trip in trips"
+            :key="trip.id"
+            class="group flex flex-col h-full rounded-2xl border border-slate-200 bg-white
+                   px-4 py-4 sm:px-5 sm:py-5 shadow-sm hover:shadow-md hover:border-sky-200
+                   transition-all"
+          >
+            <!-- หัวการ์ด -->
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="space-y-1 flex-1 min-w-0">
+                <h2
+                  class="font-semibold text-base sm:text-lg text-slate-900 line-clamp-2"
+                >
+                  {{ trip.title }}
+                </h2>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    class="inline-flex items-center rounded-full bg-sky-50 border border-sky-100
+                           px-2 py-0.5 text-[11px] text-sky-700"
+                  >
+                    📍 {{ trip.province || "ไม่ระบุสถานที่" }}
+                  </span>
+                </div>
+
+                <p class="text-[11px] text-slate-400">
+                  สร้างโดย
+                  <span class="font-medium text-slate-600">
+                    {{ trip.authorName || "-" }}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <!-- เนื้อหา -->
+            <p class="text-sm text-gray-700 line-clamp-3">
+              {{ trip.description || "ไม่มีรายละเอียดเพิ่มเติม" }}
+            </p>
+
+            <!-- Tags -->
+            <div
+              v-if="trip.tags && trip.tags.length > 0"
+              class="mt-3 flex flex-wrap gap-2"
+            >
+              <span
+                v-for="tag in trip.tags"
+                :key="tag"
+                class="inline-flex items-center rounded-full border border-sky-200
+                       bg-sky-50 px-2.5 py-0.5 text-[11px] text-sky-700"
+              >
+                #{{ tag }}
+              </span>
+            </div>
+
+            <!-- ปุ่มจัดการ -->
+            <div
+              class="mt-4 flex items-center justify-between gap-3 text-xs"
+            >
+              <!-- ดูรายละเอียด: ทำสไตล์เหมือนลิงก์ กลับหน้าหลัก -->
               <button
                 type="button"
-                class="px-3 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
-                @click="goToEdit(trip.id)"
+                class="inline-flex items-center gap-1 text-sky-600
+                       border-b border-transparent pb-[1px]
+                       hover:text-sky-700 hover:border-sky-700"
+                @click="goToDetail(trip.id)"
               >
-                แก้ไข
+                <span>ดูรายละเอียดทริป</span>
+                <span>➜</span>
               </button>
 
-              <button
-                type="button"
-                class="px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                :disabled="deletingId === trip.id"
-                @click="openDeleteModal(trip.id)"
-              >
-                {{ deletingId === trip.id ? "กำลังลบ..." : "ลบทริป" }}
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="px-3 py-1 rounded-md border border-amber-200 text-amber-700
+                         bg-amber-50 hover:bg-amber-100"
+                  @click="goToEdit(trip.id)"
+                >
+                  แก้ไข
+                </button>
+
+                <button
+                  type="button"
+                  class="px-3 py-1 rounded-md border border-red-200 text-red-600
+                         hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="deletingId === trip.id"
+                  @click="openDeleteModal(trip.id)"
+                >
+                  {{ deletingId === trip.id ? "กำลังลบ..." : "ลบทริป" }}
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
-      </div>
+          </article>
+        </section>
+      </section>
 
       <!-- Popup ลบทริป -->
       <Transition name="fade">
@@ -178,7 +227,8 @@
 
               <button
                 type="button"
-                class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700
+                       disabled:opacity-60 disabled:cursor-not-allowed"
                 :disabled="deletingId !== null"
                 @click="confirmDeleteModal"
               >

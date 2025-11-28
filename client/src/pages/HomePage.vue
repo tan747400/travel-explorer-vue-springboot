@@ -1,26 +1,80 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <main class="px-4 sm:px-6 lg:px-10 py-8 max-w-6xl mx-auto">
-      <!-- Heading -->
-      <header class="mb-8">
-        <h1
-          class="text-4xl sm:text-5xl lg:text-6xl text-center text-sky-500 font-extrabold tracking-tight"
+  <div class="min-h-screen bg-gradient-to-b from-sky-50 via-slate-50 to-slate-100">
+    <main class="px-4 sm:px-6 lg:px-10 py-8 sm:py-10 max-w-6xl mx-auto">
+      <!-- Hero / Heading -->
+      <header class="mb-6 sm:mb-8">
+        <div
+          class="rounded-3xl bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700
+                 text-white px-6 py-7 sm:px-8 sm:py-8 shadow-sm
+                 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
-          เที่ยวไหนดี
-        </h1>
-        <p class="mt-3 text-center text-sm text-slate-500 max-w-xl mx-auto">
-          รวมไอเดียสถานที่เที่ยวและทริปในฝันจากผู้ใช้คนอื่น ๆ
-          ลองค้นหาที่ที่คุณสนใจดูสิ
-        </p>
+          <div class="space-y-3 max-w-xl">
+            <div class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-300"></span>
+              <span class="text-[11px] sm:text-xs font-medium tracking-wide">
+                Travel ideas from real users
+              </span>
+            </div>
+
+            <h1
+              class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight"
+            >
+              เที่ยวไหนดี
+            </h1>
+
+            <p class="text-xs sm:text-sm text-sky-50/90 leading-relaxed">
+              รวมไอเดียสถานที่เที่ยวและทริปในฝันจากผู้ใช้คนอื่น ๆ
+              ค้นหาแรงบันดาลใจ แล้วเก็บไว้เป็นทริปของคุณเองได้ในไม่กี่คลิก
+            </p>
+
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span
+                class="inline-flex items-center rounded-full bg-white/10 px-3 py-1
+                       text-[11px] sm:text-xs font-medium"
+              >
+                🌏 กรองทริปได้ตามสถานที่
+              </span>
+              <span
+                class="inline-flex items-center rounded-full bg-white/10 px-3 py-1
+                       text-[11px] sm:text-xs font-medium"
+              >
+                # แท็กช่วยให้เจอทริปสไตล์ที่คุณชอบเร็วขึ้น
+              </span>
+            </div>
+          </div>
+
+          <div
+            class="hidden sm:flex items-center justify-center flex-shrink-0"
+          >
+            <div
+              class="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-white/10 border border-white/30
+                     flex items-center justify-center shadow-inner"
+            >
+              <span class="text-3xl sm:text-4xl">✈️</span>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <!-- Search -->
-      <section class="mb-6 w-full">
-        <SearchBar
-          v-model="keyword"
-          label="ค้นหาที่เที่ยว"
-          placeholder="หาที่เที่ยวแล้วไปกัน ..."
-        />
+      <!-- Search box -->
+      <section class="-mt-4 sm:-mt-6 mb-6 sm:mb-8">
+        <div
+          class="rounded-2xl bg-white/90 backdrop-blur border border-slate-200 shadow-sm
+                 px-4 py-3 sm:px-5 sm:py-4 transition-shadow hover:shadow-md"
+        >
+          <SearchBar
+            v-model="keyword"
+            label="ค้นหาที่เที่ยว"
+            placeholder="หาที่เที่ยวแล้วไปกัน ..."
+          />
+          <div
+            class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+          >
+            <p class="text-[11px] sm:text-xs text-slate-400">
+              แนะนำ: ลองค้นด้วยชื่อจังหวัด, ชื่อสถานที่, หรือแท็ก เช่น เชียงใหม่ ทะเล คาเฟ่
+            </p>
+          </div>
+        </div>
       </section>
 
       <!-- ===== Loading: full-page skeleton สำหรับการโหลดครั้งแรก ===== -->
@@ -31,54 +85,71 @@
       <!-- ===== Main content (โหลดสำเร็จอย่างน้อย 1 ครั้งแล้ว) ===== -->
       <template v-else>
         <!-- Filters -->
-        <!-- ใช้ hasLoadedOnce เพื่อไม่ให้กรอบ Filter หายตอนกำลังค้นหา -->
         <section
           v-if="status === 'success' || hasLoadedOnce"
-          class="mb-8 bg-white rounded-2xl border border-slate-200 shadow-sm
-                 px-4 sm:px-6 py-4 flex flex-col gap-5"
+          class="mb-8 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 shadow-sm
+                 px-4 sm:px-6 py-4 sm:py-5 space-y-4"
         >
-          <!-- Province -->
-          <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-            <span class="text-gray-500 whitespace-nowrap">
-              กรองตามสถานที่:
-            </span>
-
-            <div class="relative">
-              <select
-                v-model="selectedProvince"
-                class="border border-slate-300 rounded-lg px-3 py-1.5 pr-10
-                       bg-white text-xs sm:text-sm shadow-sm
-                       focus:outline-none focus:ring-2 focus:ring-sky-400
-                       appearance-none cursor-pointer"
-              >
-                <option value="">ทั้งหมด</option>
-                <option
-                  v-for="prov in provinces"
-                  :key="prov"
-                  :value="prov"
-                >
-                  {{ prov }}
-                </option>
-              </select>
-
-              <!-- arrow -->
-              <span
-                class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base font-semibold text-black"
-              >
-                ▾
+          <!-- แถวบน: Province filter -->
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div class="flex items-center gap-2 text-xs sm:text-sm">
+              <span class="text-slate-500 whitespace-nowrap flex items-center gap-1">
+                <span class="text-base">📍</span>
+                <span>กรองตามสถานที่</span>
               </span>
+
+              <div class="relative inline-block">
+                <select
+                  v-model="selectedProvince"
+                  class="border border-slate-300 rounded-lg px-3 py-1.5 pr-9
+                         bg-white text-xs sm:text-sm shadow-sm
+                         focus:outline-none focus:ring-2 focus:ring-sky-400
+                         appearance-none cursor-pointer"
+                >
+                  <option value="">ทั้งหมด</option>
+                  <option
+                    v-for="prov in provinces"
+                    :key="prov"
+                    :value="prov"
+                  >
+                    {{ prov }}
+                  </option>
+                </select>
+
+                <!-- arrow -->
+                <span
+                  class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2
+                         text-sm font-semibold text-slate-500"
+                >
+                  ▾
+                </span>
+              </div>
             </div>
+
+            <p class="text-[11px] sm:text-xs text-slate-400">
+              เลือกจังหวัด + แท็กด้านล่าง เพื่อให้ผลลัพธ์แคบลง
+            </p>
           </div>
 
-          <!-- Tags -->
+          <!-- เส้นแบ่ง -->
+          <div class="border-t border-slate-100"></div>
+
+          <!-- แถวล่าง: Tags -->
           <div class="flex flex-col gap-2 w-full">
             <div class="flex justify-between items-center">
-              <span class="text-xs sm:text-sm text-gray-500">แท็ก:</span>
+              <span class="text-xs sm:text-sm text-slate-500 flex items-center gap-1">
+                <span class="text-base">🏷️</span>
+                <span>แท็ก</span>
+              </span>
 
               <button
                 v-if="shouldShowToggle"
                 @click="showAllTags = !showAllTags"
-                class="text-[12px] sm:text-xs text-sky-600 hover:text-sky-700 hover:underline"
+                class="text-[11px] sm:text-xs text-sky-600 hover:text-sky-700
+                       border-b border-transparent pb-[1px]
+                       hover:border-sky-700"
               >
                 {{ showAllTags ? "ซ่อนแท็ก" : "ดูแท็กทั้งหมด" }}
               </button>
@@ -141,18 +212,36 @@
         <!-- Trip List -->
         <section
           v-else-if="status === 'success'"
-          class="flex flex-col gap-6"
+          class="space-y-4"
         >
-          <TripCard
-            v-for="item in filteredTrips"
-            :key="item.id"
-            :item="item"
-            :keyword="keyword"
-            @addKeyword="handleAddKeyword"
-          />
+          <!-- Summary bar -->
+          <div
+            class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-1"
+          >
+            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">
+              ผลการค้นหา
+            </h2>
+            <p class="text-[11px] sm:text-xs text-slate-500">
+              พบทั้งหมด
+              <span class="font-medium text-slate-700">
+                {{ filteredTrips.length }}
+              </span>
+              ทริปที่ตรงกับเงื่อนไขปัจจุบัน
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-6">
+            <TripCard
+              v-for="item in filteredTrips"
+              :key="item.id"
+              :item="item"
+              :keyword="keyword"
+              @addKeyword="handleAddKeyword"
+            />
+          </div>
 
           <!-- Load more -->
-          <div class="flex justify-center mt-6">
+          <div class="flex justify-center mt-4 sm:mt-6">
             <button
               v-if="!lastPage"
               class="px-5 py-2.5 rounded-full border border-sky-500 text-sky-600 text-sm font-medium bg-white hover:bg-sky-50"
@@ -160,6 +249,12 @@
             >
               Load more
             </button>
+            <p
+              v-else
+              class="text-[11px] sm:text-xs text-slate-400"
+            >
+              แสดงทริปทั้งหมดแล้ว
+            </p>
           </div>
         </section>
       </template>
@@ -318,7 +413,6 @@ useDebouncedEffect(
 /* Tag clicked from TripCard → เอา tag ไปใส่ในช่องค้นหา + scroll ขึ้นบนสุด */
 function handleAddKeyword(tag: string) {
   keyword.value = tag;
-  // เวลาคลิกแท็กจากการ์ด ให้เลื่อนขึ้นไปเห็น header / search ทุกครั้ง
   scrollToTopSmooth();
 }
 
