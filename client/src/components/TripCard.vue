@@ -131,9 +131,9 @@
           </span>
         </button>
 
-        <!-- Copy ลิงก์ -->
+        <!-- Copy ลิงก์ (ใช้ลิงก์ share ที่มี OG ด้วย) -->
         <div class="h-11 w-11 flex items-center justify-center">
-          <CopyButton :url="absoluteDetailUrl" />
+          <CopyButton :url="sharePageUrl" />
         </div>
       </div>
     </div>
@@ -164,6 +164,12 @@ const route = useRoute();
 const item = props.item;
 const keyword = props.keyword;
 
+// base URL สำหรับ share-page จาก backend
+const SHARE_BASE =
+  import.meta.env.VITE_SHARE_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "";
+
 // คำบรรยายสั้น
 const shortDesc = computed(() => {
   const text = (item.description ?? "").trim();
@@ -189,15 +195,25 @@ const searchQuery = computed(() => {
   return q;
 });
 
-// URL path สำหรับทริป
+// URL path สำหรับทริป (ฝั่ง frontend router)
 const detailUrl = computed(() =>
   item.url ? item.url : `/trips/${item.id}`
 );
 
-// absolute URL สำหรับแชร์
+// absolute URL ของหน้า detail (ใช้ fallback ถ้าไม่มี SHARE_BASE)
 const absoluteDetailUrl = computed(() => {
   if (typeof window === "undefined") return detailUrl.value;
   return new URL(detailUrl.value, window.location.origin).toString();
+});
+
+// ลิงก์สำหรับ open graph: ชี้ไปที่ backend share page
+const sharePageUrl = computed(() => {
+  if (SHARE_BASE) {
+    const base = SHARE_BASE.replace(/\/+$/, "");
+    return `${base}/share/trips/${item.id}`;
+  }
+  // ถ้ายังไม่ได้ตั้ง SHARE_BASE ก็ fallback ไปใช้ลิงก์หน้า detail ปกติ
+  return absoluteDetailUrl.value;
 });
 
 const detailLink = computed(() => ({
@@ -225,7 +241,7 @@ function shareToLine() {
   const text =
     `${shareTitle.value}\n` +
     (shortDesc.value ? `${shortDesc.value}\n` : "") +
-    `${absoluteDetailUrl.value}`;
+    `${sharePageUrl.value}`;
 
   const shareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
   openShareWindow(shareUrl);
@@ -233,7 +249,7 @@ function shareToLine() {
 
 // Facebook: แนบลิงก์ + quote (ข้อความ)
 function shareToFacebook() {
-  const url = absoluteDetailUrl.value;
+  const url = sharePageUrl.value;
   const quote = shareText.value;
 
   const shareUrl =
@@ -251,7 +267,7 @@ function shareToX() {
   const shareUrl =
     "https://twitter.com/intent/tweet" +
     "?text=" + encodeURIComponent(text) +
-    "&url=" + encodeURIComponent(absoluteDetailUrl.value);
+    "&url=" + encodeURIComponent(sharePageUrl.value);
 
   openShareWindow(shareUrl);
 }
@@ -303,7 +319,7 @@ function shareToX() {
 
 .share-btn:hover .share-btn-inner::after {
   opacity: 1;
-  animation: share-shine 0.85s ease-out forwards;
+  animation: share-shine 0.85s.ease-out forwards;
 }
 
 .share-btn:active .share-btn-inner {
