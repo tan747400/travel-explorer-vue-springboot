@@ -22,7 +22,9 @@
         <header
           class="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:pb-5"
         >
-          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div
+            class="flex flex-col md:flex-row md:items-start md:justify-between gap-4"
+          >
             <!-- ซ้าย: ชื่อทริป -->
             <div class="space-y-2">
               <div class="flex flex-wrap items-center gap-2">
@@ -34,7 +36,9 @@
                 </span>
               </div>
 
-              <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900">
+              <h1
+                class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900"
+              >
                 {{ trip.title }}
               </h1>
 
@@ -133,9 +137,11 @@
                   :src="p"
                   :alt="`photo-${idx}`"
                   class="w-full h-full object-cover transition-opacity"
-                  :class="idx === mainImageIndex
-                    ? 'opacity-100'
-                    : 'opacity-70 group-hover:opacity-100'"
+                  :class="
+                    idx === mainImageIndex
+                      ? 'opacity-100'
+                      : 'opacity-70 group-hover:opacity-100'
+                  "
                 />
                 <span
                   v-if="idx === mainImageIndex"
@@ -481,6 +487,60 @@ async function confirmDeleteModal() {
   }
 }
 
+/* ---------- อัปเดต meta สำหรับแชร์ (Facebook / X / LINE) ---------- */
+function updateShareMeta(trip: Trip) {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  const baseTitle = trip.title || "ทริปท่องเที่ยว";
+  const siteTitle = `${baseTitle} | Travel Explorer`;
+
+  const fullDesc =
+    (trip.description && trip.description.trim()) ||
+    "ทริปท่องเที่ยวจาก Travel Explorer";
+  const description =
+    fullDesc.length > 160 ? fullDesc.slice(0, 160) + "…" : fullDesc;
+
+  const origin = window.location.origin;
+  const url = new URL(`/trips/${trip.id}`, origin).toString();
+
+  let image = "";
+  if (trip.photos && trip.photos[0]) {
+    image = new URL(trip.photos[0], origin).toString();
+  }
+
+  // ตั้ง title แท็บ
+  document.title = siteTitle;
+
+  const setMeta = (attr: "name" | "property", key: string, content: string) => {
+    if (!content) return;
+    let el = document.head.querySelector<HTMLMetaElement>(
+      `meta[${attr}="${key}"]`
+    );
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute(attr, key);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  };
+
+  // Description ทั่วไป
+  setMeta("name", "description", description);
+
+  // Open Graph
+  setMeta("property", "og:title", siteTitle);
+  setMeta("property", "og:description", description);
+  setMeta("property", "og:type", "article");
+  setMeta("property", "og:url", url);
+  if (image) setMeta("property", "og:image", image);
+
+  // Twitter
+  setMeta("name", "twitter:card", "summary_large_image");
+  setMeta("name", "twitter:title", siteTitle);
+  setMeta("name", "twitter:description", description);
+  if (image) setMeta("name", "twitter:image", image);
+}
+
 /* โหลดข้อมูลทริป (public – ไม่ใช้ token) */
 async function loadTrip() {
   loading.value = true;
@@ -488,8 +548,12 @@ async function loadTrip() {
 
   try {
     const id = Number(route.params.id);
-    trip.value = await getTripById(id);
+    const data = await getTripById(id);
+    trip.value = data;
     mainImageIndex.value = 0;
+
+    // อัปเดต meta สำหรับแชร์
+    updateShareMeta(data);
   } catch (err: any) {
     console.error(err);
     error.value =

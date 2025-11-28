@@ -1,4 +1,4 @@
-<template> 
+<template>
   <article
     class="relative group flex flex-col md:flex-row items-start gap-4 p-4 md:p-5
            bg-white rounded-3xl border border-slate-200 shadow-sm
@@ -164,11 +164,20 @@ const route = useRoute();
 const item = props.item;
 const keyword = props.keyword;
 
+// คำบรรยายสั้น
 const shortDesc = computed(() => {
   const text = (item.description ?? "").trim();
   return text.length > 120 ? text.slice(0, 120) + "…" : text;
 });
 
+// ใช้เป็น title / ข้อความแชร์
+const shareTitle = computed(() => item.title || "เที่ยวไหนดี");
+const shareText = computed(() => {
+  const desc = shortDesc.value;
+  return desc ? `${shareTitle.value} – ${desc}` : shareTitle.value;
+});
+
+// query ปัจจุบันของหน้า Home (ใช้ส่งติดไปหน้า detail เพื่อ back-to-search)
 const searchQuery = computed(() => {
   const { keyword, province, tag } = route.query;
   const q: Record<string, any> = {};
@@ -180,13 +189,23 @@ const searchQuery = computed(() => {
   return q;
 });
 
+// URL path สำหรับทริป
 const detailUrl = computed(() =>
   item.url ? item.url : `/trips/${item.id}`
 );
 
+// absolute URL สำหรับแชร์
 const absoluteDetailUrl = computed(() => {
   if (typeof window === "undefined") return detailUrl.value;
   return new URL(detailUrl.value, window.location.origin).toString();
+});
+
+// (ตัวเลือก) cover image เตรียมไว้สำหรับตั้ง og:image ที่หน้า TripDetail
+const coverImageUrl = computed(() => {
+  if (typeof window === "undefined") return item.photos?.[0];
+  if (!item.photos?.[0]) return undefined;
+  return new URL(item.photos[0], window.location.origin).toString();
+  // นำ coverImageUrl.value ไปตั้งเป็น og:image ใน TripDetailPage ผ่าน vue-meta ฯลฯ
 });
 
 const detailLink = computed(() => ({
@@ -201,23 +220,48 @@ function handleClickTag(tag: string) {
 
 function openShareWindow(url: string) {
   if (typeof window === "undefined") return;
-  window.open(url, "_blank", "noopener,noreferrer");
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (!win) {
+    alert("กรุณาอนุญาตให้เบราว์เซอร์เปิดหน้าต่างป๊อปอัปเพื่อใช้ปุ่มแชร์นะคะ");
+  }
 }
 
+/* ====== ฟังก์ชันแชร์ ====== */
+
+// LINE: ส่งทั้งข้อความ + ลิงก์ใน text เดียวกัน
 function shareToLine() {
-  const url = encodeURIComponent(absoluteDetailUrl.value);
-  openShareWindow(`https://social-plugins.line.me/lineit/share?url=${url}`);
+  const text =
+    `${shareTitle.value}\n` +
+    (shortDesc.value ? `${shortDesc.value}\n` : "") +
+    `${absoluteDetailUrl.value}`;
+
+  const shareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+  openShareWindow(shareUrl);
 }
 
+// Facebook: แนบลิงก์ + quote (ข้อความ)
 function shareToFacebook() {
-  const url = encodeURIComponent(absoluteDetailUrl.value);
-  openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${url}`);
+  const url = absoluteDetailUrl.value;
+  const quote = shareText.value;
+
+  const shareUrl =
+    "https://www.facebook.com/sharer/sharer.php" +
+    "?u=" + encodeURIComponent(url) +
+    "&quote=" + encodeURIComponent(quote);
+
+  openShareWindow(shareUrl);
 }
 
+// X (Twitter เดิม): text + url แยกกัน
 function shareToX() {
-  const url = encodeURIComponent(absoluteDetailUrl.value);
-  const text = encodeURIComponent(item.title || "เที่ยวไหนดี");
-  openShareWindow(`https://twitter.com/intent/tweet?text=${text}&url=${url}`);
+  const text = shareText.value;
+
+  const shareUrl =
+    "https://twitter.com/intent/tweet" +
+    "?text=" + encodeURIComponent(text) +
+    "&url=" + encodeURIComponent(absoluteDetailUrl.value);
+
+  openShareWindow(shareUrl);
 }
 </script>
 
