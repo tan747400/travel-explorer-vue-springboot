@@ -87,7 +87,7 @@ const router = createRouter({
 // =============================
 // Global Navigation Guard
 // =============================
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const auth = useAuthStore();
   const isLoggedIn = auth.isLoggedIn; // ใช้ getter จาก store
 

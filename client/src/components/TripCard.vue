@@ -200,14 +200,6 @@ const absoluteDetailUrl = computed(() => {
   return new URL(detailUrl.value, window.location.origin).toString();
 });
 
-// (ตัวเลือก) cover image เตรียมไว้สำหรับตั้ง og:image ที่หน้า TripDetail
-const coverImageUrl = computed(() => {
-  if (typeof window === "undefined") return item.photos?.[0];
-  if (!item.photos?.[0]) return undefined;
-  return new URL(item.photos[0], window.location.origin).toString();
-  // นำ coverImageUrl.value ไปตั้งเป็น og:image ใน TripDetailPage ผ่าน vue-meta ฯลฯ
-});
-
 const detailLink = computed(() => ({
   name: "trip-detail",
   params: { id: item.id },

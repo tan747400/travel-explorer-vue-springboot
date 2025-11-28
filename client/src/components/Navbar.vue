@@ -255,11 +255,14 @@ const auth = useAuthStore();
 const isLoggedIn = computed(() => auth.isLoggedIn);
 const avatarUrl = computed(() => auth.profileImageUrl || "");
 
+// initials ปลอดภัยสำหรับ TS แน่นอน
 const initials = computed(() => {
-  const base = auth.displayName || auth.userEmail || "";
-  if (!base.trim()) return "?";
-  const parts = base.trim().split(" ");
-  return parts[0].charAt(0).toUpperCase();
+  const base = (auth.displayName || auth.userEmail || "").trim();
+  if (!base) return "?";
+
+  const [firstWord] = base.split(" ").filter(Boolean);
+  const firstChar = firstWord?.charAt(0) ?? "?";
+  return firstChar.toUpperCase();
 });
 
 const displayNameOrEmail = computed(
