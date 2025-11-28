@@ -6,7 +6,7 @@ import { createPinia } from "pinia";
 import "./style.css"; 
 
 
-// Vue Toastification
+
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
