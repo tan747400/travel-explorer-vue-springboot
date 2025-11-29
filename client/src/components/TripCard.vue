@@ -164,12 +164,6 @@ const route = useRoute();
 const item = props.item;
 const keyword = props.keyword;
 
-// base URL สำหรับ share-page จาก backend
-const SHARE_BASE =
-  import.meta.env.VITE_SHARE_BASE_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  "";
-
 // คำบรรยายสั้น
 const shortDesc = computed(() => {
   const text = (item.description ?? "").trim();
@@ -195,32 +189,21 @@ const searchQuery = computed(() => {
   return q;
 });
 
-// URL path สำหรับทริป (ฝั่ง frontend router)
-const detailUrl = computed(() =>
-  item.url ? item.url : `/trips/${item.id}`
-);
-
-// absolute URL ของหน้า detail (ใช้ fallback ถ้าไม่มี SHARE_BASE)
-const absoluteDetailUrl = computed(() => {
-  if (typeof window === "undefined") return detailUrl.value;
-  return new URL(detailUrl.value, window.location.origin).toString();
-});
-
-// ลิงก์สำหรับ open graph: ชี้ไปที่ backend share page
-const sharePageUrl = computed(() => {
-  if (SHARE_BASE) {
-    const base = SHARE_BASE.replace(/\/+$/, "");
-    return `${base}/share/trips/${item.id}`;
-  }
-  // ถ้ายังไม่ได้ตั้ง SHARE_BASE ก็ fallback ไปใช้ลิงก์หน้า detail ปกติ
-  return absoluteDetailUrl.value;
-});
-
+// ลิงก์ที่ใช้กับ RouterLink ภายในแอป
 const detailLink = computed(() => ({
   name: "trip-detail",
   params: { id: item.id },
   query: searchQuery.value,
 }));
+
+// ลิงก์ share page: https://frontend-domain/share/trips/:id
+const sharePageUrl = computed(() => {
+  if (typeof window === "undefined") {
+    // ตอน build / SSR ใช้เป็น path ธรรมดาไปก่อน
+    return `/share/trips/${item.id}`;
+  }
+  return new URL(`/share/trips/${item.id}`, window.location.origin).toString();
+});
 
 function handleClickTag(tag: string) {
   emit("addKeyword", tag);
