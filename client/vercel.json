@@ -1,5 +1,17 @@
 {
-    "rewrites": [
-      { "source": "/(.*)", "destination": "/" }
-    ]
-  }  
+  "version": 2,
+  "routes": [
+    {
+      "src": "^/share/trips/(?<id>[^/]+)$",
+      "dest": "/api/share/trips/[id].ts"
+    },
+    {
+      "src": "^/api/.*$",
+      "dest": "/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
