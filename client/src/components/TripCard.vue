@@ -319,7 +319,7 @@ function shareToX() {
 
 .share-btn:hover .share-btn-inner::after {
   opacity: 1;
-  animation: share-shine 0.85s.ease-out forwards;
+  animation: share-shine 0.85s ease-out forwards;
 }
 
 .share-btn:active .share-btn-inner {
