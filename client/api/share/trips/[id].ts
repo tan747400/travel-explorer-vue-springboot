@@ -1,8 +1,13 @@
-// client/api/share/trips/[id].ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+// === Base URLs จาก Environment (ฝั่ง server) ===
+// ไปตั้งใน Vercel → Project → Settings → Environment Variables
+// API_BASE_URL         = https://travel-explorer-backend-9xp5.onrender.com
+// FRONTEND_BASE_URL    = https://travel-explorer-vue-springboot.vercel.app
+
 const BACKEND_BASE_URL =
-  process.env.BACKEND_BASE_URL ||
+  process.env.API_BASE_URL ||
+  process.env.BACKEND_BASE_URL || // กันเผื่อยังเหลือชื่อเดิม
   "https://travel-explorer-backend-9xp5.onrender.com";
 
 const FRONTEND_BASE_URL =
@@ -17,7 +22,10 @@ interface Trip {
   province?: string | null;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
   const { id } = req.query;
 
   if (!id || Array.isArray(id)) {
@@ -28,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // 1) ดึงข้อมูลทริปจาก backend
     const tripRes = await fetch(`${BACKEND_BASE_URL}/api/trips/${id}`);
+
     if (!tripRes.ok) {
       res.status(404).send("Trip not found");
       return;
@@ -90,7 +99,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-// helper กัน XSS ง่าย ๆ
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
