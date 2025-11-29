@@ -132,7 +132,7 @@
         </button>
 
         <!-- Copy ลิงก์ (ใช้ลิงก์ share ที่มี OG ด้วย) -->
-        <div class="h-11 w-11 flex.items-center.justify-center">
+        <div class="h-11 w-11 flex items-center justify-center">
           <CopyButton :url="sharePageUrl" />
         </div>
       </div>
@@ -164,9 +164,11 @@ const route = useRoute();
 const item = props.item;
 const keyword = props.keyword;
 
-// base URL สำหรับ share-page (โดเมน frontend) จาก env
-// ตัวนี้จะใช้แบบ: `${VITE_SHARE_BASE_URL}/trips/:id`
-const SHARE_BASE = import.meta.env.VITE_SHARE_BASE_URL || "";
+// base URL สำหรับ share-page จาก backend
+const SHARE_BASE =
+  import.meta.env.VITE_SHARE_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "";
 
 // คำบรรยายสั้น
 const shortDesc = computed(() => {
@@ -204,21 +206,13 @@ const absoluteDetailUrl = computed(() => {
   return new URL(detailUrl.value, window.location.origin).toString();
 });
 
-// ลิงก์สำหรับ open graph: ชี้ไปที่ /share/trips/:id บนโดเมน frontend
+// ลิงก์สำหรับ open graph: ชี้ไปที่ backend share page
 const sharePageUrl = computed(() => {
-  // ถ้าเซ็ต VITE_SHARE_BASE_URL แล้ว เช่น "https://travel-explorer-vue-springboot.vercel.app/share"
   if (SHARE_BASE) {
     const base = SHARE_BASE.replace(/\/+$/, "");
-    return `${base}/trips/${item.id}`;
+    return `${base}/share/trips/${item.id}`;
   }
-
-  // ถ้าไม่ได้เซ็ต env: สร้างจาก window.location.origin + /share
-  if (typeof window !== "undefined") {
-    const base = `${window.location.origin.replace(/\/+$/, "")}/share`;
-    return `${base}/trips/${item.id}`;
-  }
-
-  // fallback สุดท้าย ใช้ลิงก์หน้า detail ปกติ
+  // ถ้ายังไม่ได้ตั้ง SHARE_BASE ก็ fallback ไปใช้ลิงก์หน้า detail ปกติ
   return absoluteDetailUrl.value;
 });
 
@@ -286,7 +280,7 @@ function shareToX() {
 
 .share-btn-inner {
   @apply w-full h-full rounded-full flex items-center justify-center
-         shadow-md border border-white/50 transition-all duration-200.ease-out
+         shadow-md border border-white/50 transition-all duration-200 ease-out
          bg-gradient-to-br from-sky-100 via-white to-sky-200;
   position: relative;
   overflow: hidden;
@@ -334,11 +328,7 @@ function shareToX() {
 }
 
 @keyframes share-shine {
-  0% {
-    transform: translateX(-120%);
-  }
-  100% {
-    transform: translateX(120%);
-  }
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
 }
 </style>
