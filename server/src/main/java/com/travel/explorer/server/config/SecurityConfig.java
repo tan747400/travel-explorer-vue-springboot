@@ -15,29 +15,30 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
-    // ใช้สำหรับ hashing password
+    // Password Encoder สำหรับ hashing
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     /**
-     * ปิด security ทั้งหมด + เปิด CORS (เพราะเราใช้ JWT ตรวจสิทธิ์เองใน Controller)
+     * Security หลัก — ทุก endpoint เปิดให้เข้าถึงได้ (เพราะคุณใช้ JWT เช็คเอง)
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())   // ปิด CSRF (เราไม่ใช้ session)
+                .csrf(csrf -> csrf.disable())  // ปิด CSRF (ไม่ใช้ session)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()    // ให้ทุก endpoint ใช้ได้
+                        .requestMatchers("/ping").permitAll()  // สำคัญ! ให้ /ping ตอบได้แน่นอน
+                        .anyRequest().permitAll()
                 );
 
         return http.build();
     }
 
     /**
-     * Global CORS
+     * Global CORS Config
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -47,10 +48,9 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "https://travel-explorer-vue-springboot.vercel.app"
         ));
-
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(false); // ไม่ใช้ cookies อยู่แล้ว
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
