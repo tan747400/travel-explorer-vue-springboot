@@ -206,6 +206,10 @@
               <p v-if="uploadError" class="text-xs text-red-500">
                 {{ uploadError }}
               </p>
+
+              <p v-if="uploadFiles.length" class="text-[11px] text-slate-500">
+                เลือกรูปแล้ว {{ uploadFiles.length }} ไฟล์
+              </p>
             </div>
           </section>
 
@@ -437,13 +441,8 @@ function validateForm(): boolean {
   return true;
 }
 
-// ตอนเข้าเพจ: ถ้า token พัง/หมดอายุ → เด้งออกเลย
-onMounted(async () => {
-  if (isTokenInvalidOrExpired(auth.token)) {
-    handleSessionExpired();
-    return;
-  }
-
+// โหลดข้อมูลทริป
+async function loadTrip() {
   try {
     loading.value = true;
     const loaded = await getTripById(tripId);
@@ -465,6 +464,16 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+}
+
+// ตอนเข้าเพจ: ถ้า token พัง/หมดอายุ → เด้งออกเลย
+onMounted(async () => {
+  if (isTokenInvalidOrExpired(auth.token)) {
+    handleSessionExpired();
+    return;
+  }
+
+  await loadTrip();
 });
 
 async function handleSubmit() {
@@ -560,15 +569,16 @@ async function handleUploadPhotos() {
 
   try {
     uploadingPhotos.value = true;
-    const updated = await uploadTripPhotos(
-      tripId,
-      auth.token,
-      uploadFiles.value
-    );
-    trip.value = updated;
+
+    // เรียก API อัปโหลดรูป
+    await uploadTripPhotos(tripId, auth.token, uploadFiles.value);
+
+    // รีโหลดทริปอีกรอบ เพื่อให้รูปใหม่ขึ้นแน่นอน
+    await loadTrip();
+
+    // เคลียร์ไฟล์ / input
     uploadFiles.value = [];
     uploadError.value = "";
-
     if (fileInputRef.value) {
       fileInputRef.value.value = "";
     }
@@ -615,12 +625,8 @@ async function confirmDeletePhoto() {
   try {
     deletingPhoto.value = true;
 
-    const updated = await deleteTripPhoto(
-      tripId,
-      photoToDelete.value,
-      auth.token
-    );
-    trip.value = updated;
+    await deleteTripPhoto(tripId, photoToDelete.value, auth.token);
+    await loadTrip();
 
     toast.success("ลบรูปออกจากทริปแล้ว");
   } catch (err: any) {
