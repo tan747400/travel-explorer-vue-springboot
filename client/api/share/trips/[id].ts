@@ -1,13 +1,14 @@
+// client/api/share/trips/[id].ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-// === Base URLs จาก Environment (ฝั่ง serverless บน Vercel) ===
-// ตั้งใน Vercel → Project → Settings → Environment Variables
-// API_BASE_URL       = https://travel-explorer-backend-9xp5.onrender.com
-// FRONTEND_BASE_URL  = https://travel-explorer-vue-springboot.vercel.app
+// === Base URLs จาก Environment (ฝั่ง server) ===
+// Vercel → Project → Settings → Environment Variables
+// API_BASE_URL         = https://travel-explorer-backend-9xp5.onrender.com
+// FRONTEND_BASE_URL    = https://travel-explorer-vue-springboot.vercel.app
 
 const BACKEND_BASE_URL =
   process.env.API_BASE_URL ||
-  process.env.BACKEND_BASE_URL || // กันเผื่อชื่อเดิม
+  process.env.BACKEND_BASE_URL || // เผื่อยังใช้ชื่อเดิมอยู่
   "https://travel-explorer-backend-9xp5.onrender.com";
 
 const FRONTEND_BASE_URL =
@@ -52,13 +53,16 @@ export default async function handler(
     const description =
       descRaw.length > 150 ? descRaw.slice(0, 150) + "…" : descRaw;
 
-    // รูป cover: ใช้รูปแรกของทริป ถ้าไม่มีใช้ fallback จาก frontend
+    // รูป cover: ใช้รูปแรกของทริป ถ้าไม่มีใช้ fallback ที่ frontend
     const imageUrl =
       (trip.photos && trip.photos[0]) ||
       `${FRONTEND_BASE_URL}/og-default.png`;
 
-    // URL จริงของหน้า /trips/:id บน Vercel (ให้คนไปลงที่นี่หลัง redirect)
+    // URL จริงของหน้า /trips/:id (ที่ user จะถูก redirect ไป)
     const tripUrl = `${FRONTEND_BASE_URL}/trips/${trip.id}`;
+
+    // URL ที่เราเอาไว้แชร์ (ตัวนี้แหละที่ user เห็นในโพสต์)
+    const shareUrl = `${FRONTEND_BASE_URL}/share/trips/${trip.id}`;
 
     // 2) สร้าง HTML พร้อม OG tags + redirect ไปหน้า /trips/:id
     const html = `<!doctype html>
@@ -67,16 +71,16 @@ export default async function handler(
   <meta charset="utf-8" />
   <title>${escapeHtml(title)}</title>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="canonical" href="${tripUrl}" />
-
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Travel Explorer" />
-  <meta property="og:url" content="${tripUrl}" />
+  <!-- ให้ FB / X cache ตาม share URL เอง -->
+  <meta property="og:url" content="${shareUrl}" />
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${imageUrl}" />
+
+  <!-- Canonical ชี้ไปหน้า detail จริง ๆ -->
+  <link rel="canonical" href="${tripUrl}" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
@@ -84,16 +88,13 @@ export default async function handler(
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${imageUrl}" />
 
-  <!-- ให้ bot เห็น OG tag ก่อน แล้วค่อย redirect -->
-  <meta http-equiv="refresh" content="0;url=${tripUrl}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
   <p>Redirecting to trip page…</p>
   <script>
-    // กันเผื่อ browser บางตัวไม่อ่าน meta refresh
-    setTimeout(function () {
-      window.location.href = ${JSON.stringify(tripUrl)};
-    }, 200);
+    // พอ browser โหลดเสร็จ ให้เด้งไปหน้า /trips/${trip.id} จริง ๆ
+    window.location.href = ${JSON.stringify(tripUrl)};
   </script>
 </body>
 </html>`;

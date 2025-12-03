@@ -179,7 +179,10 @@ const shareText = computed(() => {
 
 // query ปัจจุบันของหน้า Home (ใช้ส่งติดไปหน้า detail เพื่อ back-to-search)
 const searchQuery = computed(() => {
-  const { keyword, province, tag } = route.query;
+  const { keyword, province, tag } = route.query as Record<
+    string,
+    string | string[] | undefined
+  >;
   const q: Record<string, any> = {};
 
   if (typeof keyword === "string" && keyword.trim()) q.keyword = keyword;
@@ -237,8 +240,10 @@ function shareToFacebook() {
 
   const shareUrl =
     "https://www.facebook.com/sharer/sharer.php" +
-    "?u=" + encodeURIComponent(url) +
-    "&quote=" + encodeURIComponent(quote);
+    "?u=" +
+    encodeURIComponent(url) +
+    "&quote=" +
+    encodeURIComponent(quote);
 
   openShareWindow(shareUrl);
 }
@@ -249,8 +254,10 @@ function shareToX() {
 
   const shareUrl =
     "https://twitter.com/intent/tweet" +
-    "?text=" + encodeURIComponent(text) +
-    "&url=" + encodeURIComponent(sharePageUrl.value);
+    "?text=" +
+    encodeURIComponent(text) +
+    "&url=" +
+    encodeURIComponent(sharePageUrl.value);
 
   openShareWindow(shareUrl);
 }
@@ -274,8 +281,16 @@ function shareToX() {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background: radial-gradient(circle at 30% 0%, rgba(125, 211, 252, 0.45), transparent 60%),
-              radial-gradient(circle at 70% 100%, rgba(59, 130, 246, 0.35), transparent 55%);
+  background: radial-gradient(
+      circle at 30% 0%,
+      rgba(125, 211, 252, 0.45),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 70% 100%,
+      rgba(59, 130, 246, 0.35),
+      transparent 55%
+    );
   opacity: 0;
   filter: blur(6px);
   transition: opacity 0.25s ease-out;
@@ -286,7 +301,12 @@ function shareToX() {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.65) 45%, transparent 90%);
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 45%,
+    transparent 90%
+  );
   transform: translateX(-120%);
   opacity: 0;
 }
@@ -311,7 +331,11 @@ function shareToX() {
 }
 
 @keyframes share-shine {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
 }
 </style>
